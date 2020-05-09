@@ -6,32 +6,19 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 
+	"gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/connectors"
+	"gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/schema"
 	"github.com/Shopify/sarama"
-	"github.com/microlib/simple"
+	gocb "github.com/couchbase/gocb/v2"
+	"github.com/segmentio/ksuid"
 )
 
-// Init : public function that connects to the kafka queue and redis cache / couchbase DB
-func Init(logger *simple.Logger) {
+// Init : public function that connects to the kafka queue and redis cache
+func Init(conn connectors.Clients) {
 
-	cfg := sarama.NewConfig()
-	cfg.ClientID = "go-kafka-consumer"
-	cfg.Consumer.Return.Errors = true
-
-	// set the logger level
-	logger.Level = os.Getenv("LOG_LEVEL")
-
-	connectors = NewClientConnectors("NA", 0)
-
-	// check by way of logging the kafka brokers in an HA setup
-	brokerList := strings.Split(os.Getenv("BROKERS"), ",")
-	logger.Info(fmt.Sprintf("Kafka brokers: %s", strings.Join(brokerList, ", ")))
-
-	// Create new consumer
-	mc, err := sarama.NewConsumer(brokerList, cfg)
-	if err != nil {
-		panic(err)
-	}
+	mc := conn.KafkaConsumer()
 
 	defer func() {
 		if err := mc.Close(); err != nil {
@@ -41,7 +28,7 @@ func Init(logger *simple.Logger) {
 
 	topics, _ := mc.Topics()
 
-	consumer, errors := consume(topics, mc)
+	consumer, errors := consume(conn, topics, mc)
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
@@ -49,39 +36,41 @@ func Init(logger *simple.Logger) {
 	// Count how many message processed
 	msgCount := 0
 
-	// crerate a chanel for our consumer messages
+	// create a chanel for our consumer messages
 	doneCh := make(chan struct{})
 	go func() {
 		for {
 			select {
 			case msg := <-consumer:
 				msgCount++
-				logger.Debug(fmt.Sprintf("Received messages %s %s\n", string(msg.Key), string(msg.Value)))
+				conn.Debug(fmt.Sprintf("Received messages %v ", msg))
 				if os.Getenv("TESTING") == "true" && msgCount > 1 {
-					logger.Info("Test flag set - auto interrupt")
+					conn.Info("Test flag set - auto interrupt")
 					doneCh <- struct{}{}
 				}
 			case consumerError := <-errors:
 				msgCount++
-				logger.Error(fmt.Sprintf("Received consumerError %s %s %v \n", string(consumerError.Topic), string(consumerError.Partition), consumerError.Err))
+				conn.Error(fmt.Sprintf("Received consumerError  %v ", consumerError))
 				doneCh <- struct{}{}
 			case <-signals:
-				logger.Info("Interrupt detected")
+				conn.Info("Interrupt detected")
 				doneCh <- struct{}{}
 			}
 		}
 	}()
 
 	<-doneCh
-	logger.Info(fmt.Sprintf("Processed %d messages", msgCount))
+	conn.Info(fmt.Sprintf("Processed %d messages", msgCount))
 }
 
 // consume function - it iterates through each topic to find the specified topic, once found it then iterates through each partition
-func consume(topics []string, master sarama.Consumer) (chan *sarama.ConsumerMessage, chan *sarama.ConsumerError) {
+func consume(conn connectors.Clients, topics []string, master sarama.Consumer) (chan *sarama.ConsumerMessage, chan *sarama.ConsumerError) {
 
+	conn.Info(fmt.Sprintf("Function consume topics %v", topics))
 	consumers := make(chan *sarama.ConsumerMessage)
 	errors := make(chan *sarama.ConsumerError)
 	for _, topic := range topics {
+		conn.Info(fmt.Sprintf("iterate topics %v", topics))
 		if strings.Contains(topic, "__consumer_offsets") {
 			continue
 		}
@@ -92,35 +81,24 @@ func consume(topics []string, master sarama.Consumer) (chan *sarama.ConsumerMess
 				// consider using sarama.OffsetNewest
 				consumer, err := master.ConsumePartition(topic, partitions[x], sarama.OffsetOldest)
 				if nil != err {
-					logger.Error(fmt.Sprintf("Topic %v Partition: %v", topic, partitions[x]))
+					conn.Error(fmt.Sprintf("Topic %v Partition: %v", topic, partitions[x]))
 					break
 				}
-				logger.Info(fmt.Sprintf("Start consuming topic %v ", topic))
+				conn.Info(fmt.Sprintf("Start consuming topic %v ", topic))
 				go func(topic string, consumer sarama.PartitionConsumer) {
 					for {
 						select {
 						case consumerError := <-consumer.Errors():
 							errors <- consumerError
-							logger.Error(fmt.Sprintf("consumerError: %v ", consumerError.Err))
+							conn.Error(fmt.Sprintf("consumerError: %v ", consumerError))
 
 						case msg := <-consumer.Messages():
 							consumers <- msg
-							logger.Debug(fmt.Sprintf("Got message on topic %v : %v ", topic, msg.Value))
+							conn.Debug(fmt.Sprintf("Got message on topic %v : %v ", topic, msg))
 
-							if os.Getenv("CONNECTOR") == "cache" {
-								// write to cache
-								logger.Debug(fmt.Sprintf("Writing data to redis cache"))
-								err := connectors.writeToKVStore("latest", msg.Value)
-								if err != nil {
-									logger.Error(fmt.Sprintf("Error : %v ", err))
-								}
-							} else {
-								// write to nosql db
-								logger.Debug(fmt.Sprintf("Writing data to couchbase "))
-								err := connectors.postToDB(msg.Value)
-								if err != nil {
-									logger.Error(fmt.Sprintf("Error : %v ", err))
-								}
+							err := postToDB(conn, msg)
+							if err != nil {
+								conn.Error(fmt.Sprintf("Error : %v ", err))
 							}
 						}
 					}
@@ -131,42 +109,62 @@ func consume(topics []string, master sarama.Consumer) (chan *sarama.ConsumerMess
 	return consumers, errors
 }
 
-// writeToKVStore : private utility function that writes the payload to a KV store (redis)
-func (c *Connectors) writeToKVStore(key string, b []byte) error {
-	_, err := c.Set(key, string(b), 0)
-	if err != nil {
-		logger.Error(fmt.Sprintf("Could not write to kv store key = %s", key))
-		return err
-	} else {
-		logger.Debug(fmt.Sprintf("Data written to kv store key = %s", key))
-	}
-	return nil
-}
-
 // postToDB : private utility function that posts the json payload to couchbase
+func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 
-func (c *Connectors) postToDB(b []byte) error {
+	var analytics *schema.SegmentIO
+	var temp *schema.NewFormat
 
-	var analytics Analytics
+	// check if we have the updated detached json from segmentio
+	if msg != nil {
+		payload := string(msg.Value)
+		conn.Debug(fmt.Sprintf("Data from message queue %s", payload))
 
-	// we first unmarshal the payload and add needed values before posting to couchbase
-	errs := json.Unmarshal(b, &analytics)
-	if errs != nil {
-		logger.Error(fmt.Sprintf("Could not unmarshal analytics data to json %v", errs))
-		return errs
+		if strings.Index(payload, "anonymousId") == -1 {
+			// we have the new format
+			errs := json.Unmarshal(msg.Value, &temp)
+			if errs != nil {
+				conn.Error("postToDB unmarshalling new format %v", errs)
+				return errs
+			}
+			id := ksuid.New()
+			analytics = &schema.SegmentIO{}
+			analytics.Id = id.String()
+			analytics.Context.UserAgent = temp.UserAgent
+			analytics.Properties.Type = temp.Type
+			analytics.Properties.Spec = temp.Spec
+			analytics.Properties.Value = temp.Value
+			analytics.Properties.UtmVariable = temp.UtmVariable
+			now := time.Now()
+			// layout := "2006-01-02T15:04:05Z"
+			analytics.ReceivedAt = now
+			analytics.Timestamp = now
+			analytics.SentAt = now
+			analytics.UserID = "message-consumer-couchbase"
+			analytics.Version = 1131
+		} else {
+			// we first unmarshal the payload and add needed values before posting to couchbase
+			errs := json.Unmarshal(msg.Value, &analytics)
+			if errs != nil {
+				conn.Error("postToDB %v\n", errs)
+				return errs
+			}
+		}
+
+		//_, err := c.Upsert(analytics.Affiliate+"-"+strconv.FormatInt(analytics.Timestamp, 10), analytics, &gocb.UpsertOptions{})
+		// TODO:  we have to make our service idempotent
+		_, err := conn.Upsert(analytics.Id, analytics, &gocb.UpsertOptions{})
+		if err != nil {
+			conn.Error(fmt.Sprintf("Could not upsert schema into couchbase %v", err))
+			return err
+		}
+
+		// all good :)
+		conn.Info("Analytics schema inserted into couchbase")
+		return nil
+
+	} else {
+		conn.Info("Message data is nil")
+		return nil
 	}
-
-	analytics.ProductName = "Trackmate"
-
-	// ensure uniqueness
-	collection := r.Bucket.DefaultCollection()
-	_, err := collection.Upsert(analytics.TrackingId+"-"+analytics.AffiliateId, analytics, &gocb.CollectionOptions{})
-	if err != nil {
-		logger.Error(fmt.Sprintf("Could not upsert schema into couchbase %v", err))
-		return err
-	}
-
-	// all good :)
-	logger.Debug(fmt.Sprintf("Analytics schema inserted into couchbase  %v \n", analytics))
-	return nil
 }

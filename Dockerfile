@@ -16,7 +16,7 @@ RUN curl -fsSL "$GOLANG_DOWNLOAD_URL" -o golang.tar.gz \
 
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
-COPY bin/* uid_entrypoint.sh microservice /go/
+COPY bin/* uid_entrypoint.sh build/microservice /go/
 
 RUN rpm -iv /go/librdkafka-0.11.5-1.el8.x86_64.rpm && rm -rf /go/lib*
 

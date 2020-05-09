@@ -1,0 +1,30 @@
+{
+    "spec": "track_event",
+    "type": "scroll_depth",
+    "value": 14,
+    "utm_variable": {
+        "customerNumber": "000104226595",
+        "campaignId": "38a9b4f7-368c-42c4-8207-c15315bc469b",
+        "r": "eml",
+        "experimentId": "0ea54332-a173-4356-91ec-430791b0f634",
+        "vid": "h7StNT",
+        "utm_campaign": "roc",
+        "affiliate": "ftm",
+        "utm_source": "mail",
+        "pagetype": "promo",
+        "pagename": "landingpage",
+        "utm_medium": "email",
+        "utm_content": "pw20200422_nonbuyers",
+        "bsft_clkid": "51703b1f-cb0f-4fd4-b977-b60268ada6bb",
+        "bsft_uid": "6be0bba7-4955-48a9-ac92-e1e78b775b69",
+        "bsft_mid": "e01b6a44-9fd3-44b7-a408-23ce366779a8",
+        "bsft_eid": "0ea54332-a173-4356-91ec-430791b0f634",
+        "bsft_utid": "6be0bba7-4955-48a9-ac92-e1e78b775b69-PROFITWA",
+        "bsft_link_id": "230",
+        "bsft_mime_type": "html",
+        "bsft_ek": "2020-04-22T02:21:22Z",
+        "h": "true"
+    },
+    "userAgent": "Mozilla/5.0 (Linux; Android 9; SAMSUNG SM-J530Y) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/11.1 Chrome/75.0.3770.143 Mobile Safari/537.36"
+}
+

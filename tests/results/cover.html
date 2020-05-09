@@ -54,7 +54,11 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">/home/lzuccarelli/Projects/myportfolio/myportfolio-message-consumer/consumer.go (80.0%)</option>
+				<option value="file0">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go (79.8%)</option>
+				
+				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (83.9%)</option>
+				
+				<option value="file2">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/validator/validate.go (100.0%)</option>
 				
 				</select>
 			</div>
@@ -68,42 +72,341 @@
 		</div>
 		<div id="content">
 		
-		<pre class="file" id="file0" style="display: none">package main
+		<pre class="file" id="file0" style="display: none">package handlers
 
 import (
-        "bytes"
         "errors"
         "fmt"
+        "sync"
+        "sync/atomic"
+
         "github.com/Shopify/sarama"
-        "net/http"
+        "github.com/microlib/simple"
+)
+
+// ErrorReporter is a simple interface that includes the testing.T methods we use to report
+// expectation violations when using the mock objects.
+type ErrorReporter interface {
+        Errorf(string, ...interface{})
+}
+
+// ValueChecker is a function type to be set in each expectation of the producer mocks
+// to check the value passed.
+type ValueChecker func(val []byte) error
+
+var (
+        errProduceSuccess              error = nil
+        errOutOfExpectations                 = errors.New("No more expectations set on mock")
+        errPartitionConsumerNotStarted       = errors.New("The partition consumer was never started")
+)
+
+const AnyOffset int64 = -1000
+
+type producerExpectation struct {
+        Result        error
+        CheckFunction ValueChecker
+}
+
+// Consumer implements sarama's Consumer interface for testing purposes.
+// Before you can start consuming from this consumer, you have to register
+// topic/partitions using ExpectConsumePartition, and set expectations on them.
+type Consumer struct {
+        l                  sync.Mutex
+        t                  *simple.Logger
+        config             *sarama.Config
+        partitionConsumers map[string]map[int32]*PartitionConsumer
+        metadata           map[string][]int32
+}
+
+// NewConsumer returns a new mock Consumer instance. The t argument should
+// be the *testing.T instance of your test method. An error will be written to it if
+// an expectation is violated. The config argument can be set to nil.
+func NewConsumer(t *simple.Logger, config *sarama.Config) *Consumer <span class="cov8" title="1">{
+        if config == nil </span><span class="cov8" title="1">{
+                config = sarama.NewConfig()
+        }</span>
+
+        <span class="cov8" title="1">c := &amp;Consumer{
+                t:                  t,
+                config:             config,
+                partitionConsumers: make(map[string]map[int32]*PartitionConsumer),
+        }
+        return c</span>
+}
+
+// ConsumePartition implements the ConsumePartition method from the sarama.Consumer interface.
+// Before you can start consuming a partition, you have to set expectations on it using
+// ExpectConsumePartition. You can only consume a partition once per consumer.
+func (c *Consumer) ConsumePartition(topic string, partition int32, offset int64) (sarama.PartitionConsumer, error) <span class="cov8" title="1">{
+        c.l.Lock()
+        defer c.l.Unlock()
+
+        if c.partitionConsumers[topic] == nil || c.partitionConsumers[topic][partition] == nil </span><span class="cov8" title="1">{
+                c.t.Error(fmt.Sprintf("No expectations set for %s/%d", topic, partition))
+                return nil, errOutOfExpectations
+        }</span>
+
+        <span class="cov8" title="1">pc := c.partitionConsumers[topic][partition]
+        if pc.consumed </span><span class="cov0" title="0">{
+                return nil, sarama.ConfigurationError("The topic/partition is already being consumed")
+        }</span>
+
+        <span class="cov8" title="1">if pc.offset != AnyOffset &amp;&amp; pc.offset != offset </span><span class="cov0" title="0">{
+                c.t.Error(fmt.Sprintf("Unexpected offset when calling ConsumePartition for %s/%d. Expected %d, got %d.", topic, partition, pc.offset, offset))
+        }</span>
+
+        <span class="cov8" title="1">pc.consumed = true
+        return pc, nil</span>
+}
+
+// Topics returns a list of topics, as registered with SetTopicMetadata
+func (c *Consumer) Topics() ([]string, error) <span class="cov8" title="1">{
+        c.l.Lock()
+        defer c.l.Unlock()
+
+        if c.metadata == nil </span><span class="cov0" title="0">{
+                c.t.Error("Unexpected call to Topics. Initialize the mock's topic metadata with SetTopicMetadata.")
+                return nil, sarama.ErrOutOfBrokers
+        }</span>
+
+        <span class="cov8" title="1">var result []string
+        for topic := range c.metadata </span><span class="cov8" title="1">{
+                result = append(result, topic)
+        }</span>
+        <span class="cov8" title="1">return result, nil</span>
+}
+
+// Partitions returns the list of parititons for the given topic, as registered with SetTopicMetadata
+func (c *Consumer) Partitions(topic string) ([]int32, error) <span class="cov8" title="1">{
+        c.l.Lock()
+        defer c.l.Unlock()
+
+        if c.metadata == nil </span><span class="cov0" title="0">{
+                c.t.Error("Unexpected call to Partitions. Initialize the mock's topic metadata with SetTopicMetadata.")
+                return nil, sarama.ErrOutOfBrokers
+        }</span>
+        <span class="cov8" title="1">if c.metadata[topic] == nil </span><span class="cov0" title="0">{
+                return nil, sarama.ErrUnknownTopicOrPartition
+        }</span>
+
+        <span class="cov8" title="1">return c.metadata[topic], nil</span>
+}
+
+func (c *Consumer) HighWaterMarks() map[string]map[int32]int64 <span class="cov0" title="0">{
+        hwms := make(map[string]map[int32]int64, len(c.partitionConsumers))
+        return hwms
+}</span>
+
+// Close implements the Close method from the sarama.Consumer interface. It will close
+// all registered PartitionConsumer instances.
+func (c *Consumer) Close() error <span class="cov8" title="1">{
+        c.l.Lock()
+        defer c.l.Unlock()
+
+        for _, partitions := range c.partitionConsumers </span><span class="cov8" title="1">{
+                for _, partitionConsumer := range partitions </span><span class="cov8" title="1">{
+                        _ = partitionConsumer.Close()
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// SetTopicMetadata sets the clusters topic/partition metadata,
+// which will be returned by Topics() and Partitions().
+func (c *Consumer) SetTopicMetadata(metadata map[string][]int32) <span class="cov8" title="1">{
+        c.l.Lock()
+        defer c.l.Unlock()
+
+        c.metadata = metadata
+}</span>
+
+// ExpectConsumePartition will register a topic/partition, so you can set expectations on it.
+// The registered PartitionConsumer will be returned, so you can set expectations
+// on it using method chaining. Once a topic/partition is registered, you are
+// expected to start consuming it using ConsumePartition. If that doesn't happen,
+// an error will be written to the error reporter once the mock consumer is closed. It will
+// also expect that the
+func (c *Consumer) ExpectConsumePartition(topic string, partition int32, offset int64) *PartitionConsumer <span class="cov8" title="1">{
+        c.l.Lock()
+        defer c.l.Unlock()
+
+        if c.partitionConsumers[topic] == nil </span><span class="cov8" title="1">{
+                c.partitionConsumers[topic] = make(map[int32]*PartitionConsumer)
+        }</span>
+
+        <span class="cov8" title="1">if c.partitionConsumers[topic][partition] == nil </span><span class="cov8" title="1">{
+                c.partitionConsumers[topic][partition] = &amp;PartitionConsumer{
+                        t:         c.t,
+                        topic:     topic,
+                        partition: partition,
+                        offset:    offset,
+                        messages:  make(chan *sarama.ConsumerMessage, c.config.ChannelBufferSize),
+                        errors:    make(chan *sarama.ConsumerError, c.config.ChannelBufferSize),
+                }
+        }</span>
+
+        <span class="cov8" title="1">return c.partitionConsumers[topic][partition]</span>
+}
+
+// PartitionConsumer implements sarama's PartitionConsumer interface for testing purposes.
+// It is returned by the mock Consumers ConsumePartitionMethod, but only if it is
+// registered first using the Consumer's ExpectConsumePartition method. Before consuming the
+// Errors and Messages channel, you should specify what values will be provided on these
+// channels using YieldMessage and YieldError.
+type PartitionConsumer struct {
+        highWaterMarkOffset     int64 // must be at the top of the struct because https://golang.org/pkg/sync/atomic/#pkg-note-BUG
+        l                       sync.Mutex
+        t                       *simple.Logger
+        topic                   string
+        partition               int32
+        offset                  int64
+        messages                chan *sarama.ConsumerMessage
+        errors                  chan *sarama.ConsumerError
+        singleClose             sync.Once
+        consumed                bool
+        errorsShouldBeDrained   bool
+        messagesShouldBeDrained bool
+}
+
+// AsyncClose implements the AsyncClose method from the sarama.PartitionConsumer interface.
+func (pc *PartitionConsumer) AsyncClose() <span class="cov8" title="1">{
+        pc.singleClose.Do(func() </span><span class="cov8" title="1">{
+                close(pc.messages)
+                close(pc.errors)
+        }</span>)
+}
+
+// Close implements the Close method from the sarama.PartitionConsumer interface. It will
+// verify whether the partition consumer was actually started.
+func (pc *PartitionConsumer) Close() error <span class="cov8" title="1">{
+        if !pc.consumed </span><span class="cov0" title="0">{
+                pc.t.Error(fmt.Sprintf("Expectations set on %s/%d, but no partition consumer was started.", pc.topic, pc.partition))
+                return errPartitionConsumerNotStarted
+        }</span>
+
+        <span class="cov8" title="1">if pc.errorsShouldBeDrained &amp;&amp; len(pc.errors) &gt; 0 </span><span class="cov0" title="0">{
+                pc.t.Error(fmt.Sprintf("Expected the errors channel for %s/%d to be drained on close, but found %d errors.", pc.topic, pc.partition, len(pc.errors)))
+        }</span>
+
+        <span class="cov8" title="1">if pc.messagesShouldBeDrained &amp;&amp; len(pc.messages) &gt; 0 </span><span class="cov0" title="0">{
+                pc.t.Error(fmt.Sprintf("Expected the messages channel for %s/%d to be drained on close, but found %d messages.", pc.topic, pc.partition, len(pc.messages)))
+        }</span>
+
+        <span class="cov8" title="1">pc.AsyncClose()
+
+        var (
+                closeErr error
+                wg       sync.WaitGroup
+        )
+
+        wg.Add(1)
+        go func() </span><span class="cov8" title="1">{
+                defer wg.Done()
+
+                var errs = make(sarama.ConsumerErrors, 0)
+                for err := range pc.errors </span><span class="cov0" title="0">{
+                        errs = append(errs, err)
+                }</span>
+
+                <span class="cov8" title="1">if len(errs) &gt; 0 </span><span class="cov0" title="0">{
+                        closeErr = errs
+                }</span>
+        }()
+
+        <span class="cov8" title="1">wg.Add(1)
+        go func() </span><span class="cov8" title="1">{
+                defer wg.Done()
+                for range pc.messages </span>{<span class="cov8" title="1">
+                        // drain
+                }</span>
+        }()
+
+        <span class="cov8" title="1">wg.Wait()
+        return closeErr</span>
+}
+
+// Errors implements the Errors method from the sarama.PartitionConsumer interface.
+func (pc *PartitionConsumer) Errors() &lt;-chan *sarama.ConsumerError <span class="cov8" title="1">{
+        return pc.errors
+}</span>
+
+// Messages implements the Messages method from the sarama.PartitionConsumer interface.
+func (pc *PartitionConsumer) Messages() &lt;-chan *sarama.ConsumerMessage <span class="cov8" title="1">{
+        return pc.messages
+}</span>
+
+func (pc *PartitionConsumer) HighWaterMarkOffset() int64 <span class="cov0" title="0">{
+        return atomic.LoadInt64(&amp;pc.highWaterMarkOffset) + 1
+}</span>
+
+// YieldMessage will yield a messages Messages channel of this partition consumer
+// when it is consumed. By default, the mock consumer will not verify whether this
+// message was consumed from the Messages channel, because there are legitimate
+// reasons forthis not to happen. ou can call ExpectMessagesDrainedOnClose so it will
+// verify that the channel is empty on close.
+func (pc *PartitionConsumer) YieldMessage(msg *sarama.ConsumerMessage) <span class="cov8" title="1">{
+        pc.l.Lock()
+        defer pc.l.Unlock()
+
+        msg.Topic = pc.topic
+        msg.Partition = pc.partition
+        msg.Offset = atomic.AddInt64(&amp;pc.highWaterMarkOffset, 1)
+
+        pc.messages &lt;- msg
+}</span>
+
+// YieldError will yield an error on the Errors channel of this partition consumer
+// when it is consumed. By default, the mock consumer will not verify whether this error was
+// consumed from the Errors channel, because there are legitimate reasons for this
+// not to happen. You can call ExpectErrorsDrainedOnClose so it will verify that
+// the channel is empty on close.
+func (pc *PartitionConsumer) YieldError(err error) <span class="cov8" title="1">{
+        pc.errors &lt;- &amp;sarama.ConsumerError{
+                Topic:     pc.topic,
+                Partition: pc.partition,
+                Err:       err,
+        }
+}</span>
+
+// ExpectMessagesDrainedOnClose sets an expectation on the partition consumer
+// that the messages channel will be fully drained when Close is called. If this
+// expectation is not met, an error is reported to the error reporter.
+func (pc *PartitionConsumer) ExpectMessagesDrainedOnClose() <span class="cov0" title="0">{
+        pc.messagesShouldBeDrained = true
+}</span>
+
+// ExpectErrorsDrainedOnClose sets an expectation on the partition consumer
+// that the errors channel will be fully drained when Close is called. If this
+// expectation is not met, an error is reported to the error reporter.
+func (pc *PartitionConsumer) ExpectErrorsDrainedOnClose() <span class="cov0" title="0">{
+        pc.errorsShouldBeDrained = true
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package handlers
+
+import (
+        "encoding/json"
+        "fmt"
         "os"
         "os/signal"
         "strings"
+        "time"
+
+        "gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/connectors"
+        "gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/schema"
+        "github.com/Shopify/sarama"
+        gocb "github.com/couchbase/gocb/v2"
+        "github.com/segmentio/ksuid"
 )
 
 // Init : public function that connects to the kafka queue and redis cache
-func Init() <span class="cov8" title="1">{
+func Init(conn connectors.Clients) <span class="cov8" title="1">{
 
-        cfg := sarama.NewConfig()
-        cfg.ClientID = "go-kafka-consumer"
-        cfg.Consumer.Return.Errors = true
+        mc := conn.KafkaConsumer()
 
-        // set the logger level
-        logger.Level = os.Getenv("LOG_LEVEL")
-
-        connectors = NewClientConnectors("NA", 0)
-
-        // check by way of logging the kafka brokers in an HA setup
-        brokerList := strings.Split(os.Getenv("BROKERS"), ",")
-        logger.Info(fmt.Sprintf("Kafka brokers: %s", strings.Join(brokerList, ", ")))
-
-        // Create new consumer
-        mc, err := sarama.NewConsumer(brokerList, cfg)
-        if err != nil </span><span class="cov0" title="0">{
-                panic(err)</span>
-        }
-
-        <span class="cov8" title="1">defer func() </span><span class="cov8" title="1">{
+        defer func() </span><span class="cov8" title="1">{
                 if err := mc.Close(); err != nil </span><span class="cov0" title="0">{
                         panic(err)</span>
                 }
@@ -111,7 +414,7 @@ func Init() <span class="cov8" title="1">{
 
         <span class="cov8" title="1">topics, _ := mc.Topics()
 
-        consumer, errors := consume(topics, mc)
+        consumer, errors := consume(conn, topics, mc)
 
         signals := make(chan os.Signal, 1)
         signal.Notify(signals, os.Interrupt)
@@ -119,43 +422,41 @@ func Init() <span class="cov8" title="1">{
         // Count how many message processed
         msgCount := 0
 
-        // crerate a chanel for our consumer messages
+        // create a chanel for our consumer messages
         doneCh := make(chan struct{})
         go func() </span><span class="cov8" title="1">{
                 for </span><span class="cov8" title="1">{
                         select </span>{
                         case msg := &lt;-consumer:<span class="cov8" title="1">
                                 msgCount++
-                                logger.Debug(fmt.Sprintf("Received messages %s %s\n", string(msg.Key), string(msg.Value)))
-                                if os.Getenv("TESTING") == "true" &amp;&amp; msgCount &gt; 1 </span><span class="cov8" title="1">{
-                                        logger.Info("Test flag set - auto interrupt")
+                                conn.Debug(fmt.Sprintf("Received messages %v ", msg))
+                                if os.Getenv("TESTING") == "true" &amp;&amp; msgCount &gt; 1 </span><span class="cov0" title="0">{
+                                        conn.Info("Test flag set - auto interrupt")
                                         doneCh &lt;- struct{}{}
                                 }</span>
-                        case consumerError := &lt;-errors:<span class="cov0" title="0">
+                        case consumerError := &lt;-errors:<span class="cov8" title="1">
                                 msgCount++
-                                logger.Error(fmt.Sprintf("Received consumerError %s %s %v \n", string(consumerError.Topic), string(consumerError.Partition), consumerError.Err))
+                                conn.Error(fmt.Sprintf("Received consumerError  %v ", consumerError))
                                 doneCh &lt;- struct{}{}</span>
                         case &lt;-signals:<span class="cov0" title="0">
-                                logger.Info("Interrupt detected")
+                                conn.Info("Interrupt detected")
                                 doneCh &lt;- struct{}{}</span>
                         }
                 }
         }()
 
         <span class="cov8" title="1">&lt;-doneCh
-        logger.Info(fmt.Sprintf("Processed %d messages", msgCount))</span>
+        conn.Info(fmt.Sprintf("Processed %d messages", msgCount))</span>
 }
 
 // consume function - it iterates through each topic to find the specified topic, once found it then iterates through each partition
-// @param - topic []string
-// @param - master sarama.Consumer
-// @returns - channel object
-// @returns - channel error object
-func consume(topics []string, master sarama.Consumer) (chan *sarama.ConsumerMessage, chan *sarama.ConsumerError) <span class="cov8" title="1">{
+func consume(conn connectors.Clients, topics []string, master sarama.Consumer) (chan *sarama.ConsumerMessage, chan *sarama.ConsumerError) <span class="cov8" title="1">{
 
+        conn.Info(fmt.Sprintf("Function consume topics %v", topics))
         consumers := make(chan *sarama.ConsumerMessage)
         errors := make(chan *sarama.ConsumerError)
         for _, topic := range topics </span><span class="cov8" title="1">{
+                conn.Info(fmt.Sprintf("iterate topics %v", topics))
                 if strings.Contains(topic, "__consumer_offsets") </span><span class="cov0" title="0">{
                         continue</span>
                 }
@@ -163,37 +464,28 @@ func consume(topics []string, master sarama.Consumer) (chan *sarama.ConsumerMess
                 <span class="cov8" title="1">if topic == os.Getenv("TOPIC") </span><span class="cov8" title="1">{
                         partitions, _ := master.Partitions(topic)
                         for x, _ := range partitions </span><span class="cov8" title="1">{
+                                // consider using sarama.OffsetNewest
                                 consumer, err := master.ConsumePartition(topic, partitions[x], sarama.OffsetOldest)
-                                if nil != err </span><span class="cov0" title="0">{
-                                        logger.Error(fmt.Sprintf("Topic %v Partition: %v", topic, partitions[x]))
+                                if nil != err </span><span class="cov8" title="1">{
+                                        conn.Error(fmt.Sprintf("Topic %v Partition: %v", topic, partitions[x]))
                                         break</span>
                                 }
-                                <span class="cov8" title="1">logger.Info(fmt.Sprintf("Start consuming topic %v ", topic))
+                                <span class="cov8" title="1">conn.Info(fmt.Sprintf("Start consuming topic %v ", topic))
                                 go func(topic string, consumer sarama.PartitionConsumer) </span><span class="cov8" title="1">{
                                         for </span><span class="cov8" title="1">{
                                                 select </span>{
-                                                case consumerError := &lt;-consumer.Errors():<span class="cov0" title="0">
+                                                case consumerError := &lt;-consumer.Errors():<span class="cov8" title="1">
                                                         errors &lt;- consumerError
-                                                        logger.Error(fmt.Sprintf("consumerError: %v ", consumerError.Err))</span>
+                                                        conn.Error(fmt.Sprintf("consumerError: %v ", consumerError))</span>
 
                                                 case msg := &lt;-consumer.Messages():<span class="cov8" title="1">
                                                         consumers &lt;- msg
-                                                        logger.Debug(fmt.Sprintf("Got message on topic %v : %v ", topic, msg.Value))
+                                                        conn.Debug(fmt.Sprintf("Got message on topic %v : %v ", topic, msg))
 
-                                                        if os.Getenv("CONNECTOR") == "store" </span><span class="cov8" title="1">{
-                                                                logger.Debug(fmt.Sprintf("Writing data to redis cache"))
-                                                                err := connectors.writeToKVStore("latest", msg.Value)
-                                                                if err != nil </span><span class="cov0" title="0">{
-                                                                        logger.Error(fmt.Sprintf("Error : %v ", err))
-                                                                }</span>
-                                                        } else<span class="cov8" title="1"> {
-                                                                // write to kv store
-                                                                logger.Debug(fmt.Sprintf("Writing data to KV store latest"))
-                                                                err := connectors.postToAnalytics(msg.Value)
-                                                                if err != nil </span><span class="cov0" title="0">{
-                                                                        logger.Error(fmt.Sprintf("Error : %v ", err))
-                                                                }</span>
-                                                        }
+                                                        err := postToDB(conn, msg)
+                                                        if err != nil </span><span class="cov8" title="1">{
+                                                                conn.Error(fmt.Sprintf("Error : %v ", err))
+                                                        }</span>
                                                 }
                                         }
                                 }(topic, consumer)
@@ -203,53 +495,113 @@ func consume(topics []string, master sarama.Consumer) (chan *sarama.ConsumerMess
         <span class="cov8" title="1">return consumers, errors</span>
 }
 
-// writeToKVStore : private utility function that writes the payload to a KV store (redis)
-// @param  : key string
-// @param  : b []byte - byte array to store against a key
-// @return : error object
-func (c *Connectors) writeToKVStore(key string, b []byte) error <span class="cov8" title="1">{
-        _, err := c.Set(key, string(b), 0)
-        if err != nil </span><span class="cov0" title="0">{
-                logger.Error(fmt.Sprintf("Could not write to kv store key = %s", key))
-                return err
-        }</span> else<span class="cov8" title="1"> {
-                logger.Debug(fmt.Sprintf("Data written to kv store key = %s", key))
+// postToDB : private utility function that posts the json payload to couchbase
+func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span class="cov8" title="1">{
+
+        var analytics *schema.SegmentIO
+        var temp *schema.NewFormat
+
+        // check if we have the updated detached json from segmentio
+        if msg != nil </span><span class="cov8" title="1">{
+                payload := string(msg.Value)
+                conn.Debug(fmt.Sprintf("Data from message queue %s", payload))
+
+                if strings.Index(payload, "anonymousId") == -1 </span><span class="cov8" title="1">{
+                        // we have the new format
+                        errs := json.Unmarshal(msg.Value, &amp;temp)
+                        if errs != nil </span><span class="cov8" title="1">{
+                                conn.Error("postToDB unmarshalling new format %v", errs)
+                                return errs
+                        }</span>
+                        <span class="cov8" title="1">id := ksuid.New()
+                        analytics = &amp;schema.SegmentIO{}
+                        analytics.Id = id.String()
+                        analytics.Context.UserAgent = temp.UserAgent
+                        analytics.Properties.Type = temp.Type
+                        analytics.Properties.Spec = temp.Spec
+                        analytics.Properties.Value = temp.Value
+                        analytics.Properties.UtmVariable = temp.UtmVariable
+                        now := time.Now()
+                        // layout := "2006-01-02T15:04:05Z"
+                        analytics.ReceivedAt = now
+                        analytics.Timestamp = now
+                        analytics.SentAt = now
+                        analytics.UserID = "message-consumer-couchbase"
+                        analytics.Version = 1131</span>
+                } else<span class="cov0" title="0"> {
+                        // we first unmarshal the payload and add needed values before posting to couchbase
+                        errs := json.Unmarshal(msg.Value, &amp;analytics)
+                        if errs != nil </span><span class="cov0" title="0">{
+                                conn.Error("postToDB %v\n", errs)
+                                return errs
+                        }</span>
+                }
+
+                //_, err := c.Upsert(analytics.Affiliate+"-"+strconv.FormatInt(analytics.Timestamp, 10), analytics, &amp;gocb.UpsertOptions{})
+                // TODO:  we have to make our service idempotent
+                <span class="cov8" title="1">_, err := conn.Upsert(analytics.Id, analytics, &amp;gocb.UpsertOptions{})
+                if err != nil </span><span class="cov0" title="0">{
+                        conn.Error(fmt.Sprintf("Could not upsert schema into couchbase %v", err))
+                        return err
+                }</span>
+
+                // all good :)
+                <span class="cov8" title="1">conn.Info("Analytics schema inserted into couchbase")
+                return nil</span>
+
+        } else<span class="cov0" title="0"> {
+                conn.Info("Message data is nil")
+                return nil
         }</span>
-        <span class="cov8" title="1">return nil</span>
 }
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package validator
 
-// postToAnalytics : private utility function that posts the json payload to the anayltics api endpoint
-// @param  : b []byte - byte array - payload
-// @return : error object
-func (c *Connectors) postToAnalytics(b []byte) error <span class="cov8" title="1">{
-        // set up the request
-        req, err := http.NewRequest("POST", os.Getenv("URL"), bytes.NewBuffer(b))
-        req.Header.Set("Content-Type", "application/json")
+import (
+        "fmt"
+        "os"
+        "strconv"
+        "strings"
 
-        // post to the api endpoint
-        resp, err := c.http.Do(req)
-        if err != nil </span><span class="cov0" title="0">{
-                return err
-        }</span>
-        <span class="cov8" title="1">defer resp.Body.Close()
+        "github.com/microlib/simple"
+)
 
-        // all good :)
-        logger.Debug(fmt.Sprintf("Response %v \n ", resp))
-        return nil</span>
-}
-
-// checkEnvar : private utility function that checks the required envars
-// @param  : name string (name of envar)
-// @param  : required bool (if set to true the microservice terminates)
-// @return : error
-func CheckEnvar(name string, required bool) error <span class="cov8" title="1">{
+// checkEnvars - private function, iterates through each item and checks the required field
+func checkEnvar(item string, logger *simple.Logger) error <span class="cov8" title="1">{
+        name := strings.Split(item, ",")[0]
+        required, _ := strconv.ParseBool(strings.Split(item, ",")[1])
+        logger.Trace(fmt.Sprintf("name %s : required %t", name, required))
         if os.Getenv(name) == "" </span><span class="cov8" title="1">{
                 if required </span><span class="cov8" title="1">{
                         logger.Error(fmt.Sprintf("%s envar is mandatory please set it", name))
-                        return errors.New(fmt.Sprintf("%s envar is mandatory please set it", name))
-                }</span> else<span class="cov8" title="1"> {
-                        logger.Error(fmt.Sprintf("%s envar is empty please set it", name))
-                        return nil
+                        return fmt.Errorf(fmt.Sprintf("%s envar is mandatory please set it", name))
+                }</span>
+
+                <span class="cov8" title="1">logger.Error(fmt.Sprintf("%s envar is empty please set it", name))</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// ValidateEnvars : public call that groups all envar validations
+// These envars are set via the openshift template
+func ValidateEnvars(logger *simple.Logger) error <span class="cov8" title="1">{
+        items := []string{
+                "LOG_LEVEL,false",
+                "SERVER_PORT,true",
+                "REDIS_HOST,true",
+                "REDIS_PORT,true",
+                "REDIS_PASSWORD,true",
+                "URL,true",
+                "TOKEN,true",
+                "VERSION,true",
+                "KAFKA_BROKERS,true",
+                "TOPIC,true",
+                "CONNECTOR,true",
+        }
+        for x := range items </span><span class="cov8" title="1">{
+                if err := checkEnvar(items[x], logger); err != nil </span><span class="cov8" title="1">{
+                        return err
                 }</span>
         }
         <span class="cov8" title="1">return nil</span>

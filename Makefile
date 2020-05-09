@@ -13,4 +13,11 @@ cover:
 	go tool cover -html=tests/results/cover.out -o tests/results/cover.html
 
 clean:
+	rm -rf build/microservice
 	go clean ./...
+
+docker:
+	docker build -t nexus-registry-nexus.apps.aws2-dev.ocp.14west.io/message-consumer-couchbase:1.13.1 .
+
+push:
+	docker push nexus-registry-nexus.apps.aws2-dev.ocp.14west.io/message-consumer-couchbase:1.13.1 
