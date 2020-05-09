@@ -2,8 +2,8 @@
   "format_version" : 1,
   "label_template": "${COUNT}",
   "enable_pipeline_locking": false,
-  "name": "myportfolio-message-consumer",
-  "group" : "devops",
+  "name": "trackmate-message-consumer",
+  "group" : "Trackmate",
   "tracking_tool": null,
   "timer": null,
   "environment_variables": [],
@@ -16,7 +16,7 @@
   "materials": [
     {
       "type": "git",
-      "url": "https://gitea-ci-cd.apps.balt1.okd.14west.io/lzuccarelli/myportfolio-message-consumer.git",
+      "url": "http://cicd:cicd01@gitea.cicd.svc.cluster.local:3000/cicd/trackmate-message-consumer.git",
       "destination": null,
       "filter": null,
       "name": "scm",
@@ -59,80 +59,6 @@
       ]
     },
     {
-      "name": "compile",
-      "fetch_materials": false,
-      "clean_working_directory": false,
-      "never_cleanup_artifacts": false,
-      "approval": null,
-      "environment_variables": [],
-      "jobs": [
-        {
-          "name": "compile_exec",
-          "run_instance_count": null,
-          "timeout": 0,
-          "environment_variables": [],
-          "resources": null, 
-          "tasks": [
-            {
-              "type": "exec",
-              "command": "echo",
-              "arguments": [
-                "Executing golang compile"
-              ],
-              "working_directory": null
-            },
-            {
-              "type": "exec",
-              "command": "go",
-              "arguments": [
-                "get",
-                "github.com/gorilla/mux"
-              ],
-              "working_directory": null
-            },
-            {
-              "type": "exec",
-              "command": "go",
-              "arguments": [
-                "get",
-	              "github.com/go-redis/redis"
-              ],
-              "working_directory": null
-            },
-            {
-              "type": "exec",
-              "command": "go",
-              "arguments": [
-                "get",
-                "github.com/microlib/simple"
-              ],
-              "working_directory": null
-            },
-            {
-              "type": "exec",
-              "command": "go",
-              "arguments": [
-                "get",
-                "github.com/Shopify/sarama"
-              ],
-              "working_directory": null
-            },
-            {
-              "type": "exec",
-              "command": "go",
-              "arguments": [
-                "build",
-                "-o",
-                "microservice",
-                "."
-              ],
-              "working_directory": null
-            }
-          ]
-        }
-      ]
-    },
-    {
       "name": "test",
       "fetch_materials": false,
       "clean_working_directory": false,
@@ -151,21 +77,82 @@
               "type": "exec",
               "command": "echo",
               "arguments": [
+                "Executing golang clean"
+              ],
+              "working_directory": null
+            },
+            {
+              "type": "exec",
+              "command": "make",
+              "arguments": [
+                "clean"
+              ],
+              "working_directory": null
+            },
+            {
+              "type": "exec",
+              "command": "echo",
+              "arguments": [
                 "Executing golang unit tests"
               ],
               "working_directory": null
             },
             {
               "type": "exec",
-              "command": "go",
+              "command": "make",
               "arguments": [
-                "test",
-                "-v",
-                "schema.go",
-                "consumer.go",
-                "consumer_test.go",
-                "-coverprofile",
-                "tests/results/cover.out"
+                "test"
+              ],
+              "working_directory": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "compile",
+      "fetch_materials": false,
+      "clean_working_directory": false,
+      "never_cleanup_artifacts": false,
+      "approval": null,
+      "environment_variables": [],
+      "jobs": [
+        {
+          "name": "compile_exec",
+          "run_instance_count": null,
+          "timeout": 0,
+          "environment_variables": [],
+          "resources": null, 
+          "tasks": [
+            {
+              "type": "exec",
+              "command": "echo",
+              "arguments": [
+                "Executing golang build (compile)"
+              ],
+              "working_directory": null
+            },
+            {
+              "type": "exec",
+              "command": "make",
+              "arguments": [
+                "build"
+              ],
+              "working_directory": null
+            },
+            {
+              "type": "exec",
+              "command": "echo",
+              "arguments": [
+                "Executing golang cover profile"
+              ],
+              "working_directory": null
+            },
+            {
+              "type": "exec",
+              "command": "make",
+              "arguments": [
+                "cover"
               ],
               "working_directory": null
             }
@@ -234,7 +221,7 @@
             {
               "type": "exec",
               "command": "./gocd-cicd.sh",
-               "arguments": [
+              "arguments": [
                 "build-image"
               ],
               "working_directory": null

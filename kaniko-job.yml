@@ -1,21 +1,21 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kaniko-myportfolio-message-consumer
+  name: kaniko-trackmate-message-consumer
 spec:
   parallelism: 1    
   completions: 1    
   template:         
     metadata:
-      name: kaniko-myportfolio-message-consumer
+      name: kaniko-trackmate-message-consumer
     spec:
       containers:
       - name: kaniko
         image: gcr.io/kaniko-project/executor:latest
         args: [
-          "--dockerfile=/godata/pipelines/myportfolio-message-consumer/Dockerfile",
-          "--context=/godata/pipelines/myportfolio-message-consumer",
-          "--destination=nexus-registry-nexus.apps.aws2-dev.ocp.14west.io/myportfolio-message-consumer:1.13.1"
+          "--dockerfile=/godata/pipelines/trackmate-message-consumer/Dockerfile",
+          "--context=/godata/pipelines/trackmate-message-consumer",
+          "--destination=nexus-registry-nexus.apps.aws2-dev.ocp.14west.io/trackmate-message-consumer:1.13.1"
         ]
         volumeMounts:
         - mountPath: /godata
@@ -25,12 +25,12 @@ spec:
           subPath: config.json
         env:
         - name: DESITINATION
-        value: nexus-registry-nexus.apps.aws2-dev.ocp.14west.io/myportfolio-message-consumer:1.13.1
+        value: nexus-registry-nexus.apps.aws2-dev.ocp.14west.io/trackmate-message-consumer:1.13.1
       restartPolicy: Never   
       volumes:
       - name: gocdagent-data
         persistentVolumeClaim:
-          claimName: gocdagent
+          claimName: gocdagent-node-and-go
       - name: docker-creds
         configMap:
           defaultMode: 420
