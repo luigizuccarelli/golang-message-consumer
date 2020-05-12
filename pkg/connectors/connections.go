@@ -49,6 +49,7 @@ func NewClientConnectors(logger *simple.Logger) Clients {
 	// get a bucket reference
 	// bucket := cluster.Bucket(os.Getenv("COUCHBASE_BUCKET"), &gocb.BucketOptions{}) v.2.0.0-beta-1
 	bucket := cluster.Bucket(os.Getenv("COUCHBASE_BUCKET"))
+	logger.Info(fmt.Sprintf("Couchbase connection: %v", bucket))
 
 	// kafka connector
 	cfg := sarama.NewConfig()
