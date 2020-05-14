@@ -115,7 +115,7 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 	// check if we have the updated detached json from segmentio
 	if msg != nil {
 		payload := string(msg.Value)
-		conn.Debug(fmt.Sprintf("Data from message queue %s", payload))
+		conn.Trace(fmt.Sprintf("Data from message queue %s", payload))
 
 		// we have the new format
 		errs := json.Unmarshal(msg.Value, &analytics)
@@ -123,7 +123,9 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 			conn.Error("postToDB unmarshalling new format %v", errs)
 			return errs
 		}
-		_, err := conn.Upsert(analytics.MessageId, analytics, &gocb.UpsertOptions{})
+		conn.Debug(fmt.Sprintf("Analytics struct  %v", analytics))
+		res, err := conn.Upsert(analytics.MessageId, analytics, &gocb.UpsertOptions{})
+		conn.Debug(fmt.Sprintf("Result from upsert %v", res))
 		if err != nil {
 			conn.Error(fmt.Sprintf("Could not upsert schema into couchbase %v", err))
 			return err

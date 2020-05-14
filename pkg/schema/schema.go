@@ -21,10 +21,10 @@ type Trackmate struct {
 		UtmContent     string `json:"utm_content"`
 		UtmSource      string `json:"utm_source"`
 	} `json:"utm_variable"`
-	Value     int    `json:"value"`
-	Spec      string `json:"spec"`
-	UserAgent string `json:"userAgent"`
-	Timestamp uint64 `json:"timestamp"`
+	Value     interface{} `json:"value"`
+	Spec      string      `json:"spec"`
+	UserAgent string      `json:"userAgent"`
+	Timestamp uint64      `json:"timestamp"`
 }
 
 type IrisPlusData struct {
