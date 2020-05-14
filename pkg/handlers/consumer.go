@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 
 	"gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/connectors"
 	"gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/schema"
@@ -41,7 +42,7 @@ func Init(conn connectors.Clients) {
 			select {
 			case msg := <-consumer:
 				msgCount++
-				conn.Debug(fmt.Sprintf("Received messages %v ", msg))
+				conn.Trace(fmt.Sprintf("Received messages %v ", msg))
 				if os.Getenv("TESTING") == "true" && msgCount > 1 {
 					conn.Info("Test flag set - auto interrupt")
 					doneCh <- struct{}{}
@@ -124,7 +125,7 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 			return errs
 		}
 		conn.Debug(fmt.Sprintf("Analytics struct  %v", analytics))
-		res, err := conn.Upsert(analytics.MessageId, analytics, &gocb.UpsertOptions{})
+		res, err := conn.Upsert(analytics.MessageId, analytics, &gocb.UpsertOptions{Timeout: 100 * time.Millisecond, Expiry: 60 * time.Second})
 		conn.Debug(fmt.Sprintf("Result from upsert %v", res))
 		if err != nil {
 			conn.Error(fmt.Sprintf("Could not upsert schema into couchbase %v", err))
