@@ -6,13 +6,11 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"time"
 
 	"gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/connectors"
 	"gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/schema"
 	"github.com/Shopify/sarama"
 	gocb "github.com/couchbase/gocb/v2"
-	"github.com/segmentio/ksuid"
 )
 
 // Init : public function that connects to the kafka queue and redis cache
@@ -112,48 +110,20 @@ func consume(conn connectors.Clients, topics []string, master sarama.Consumer) (
 // postToDB : private utility function that posts the json payload to couchbase
 func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 
-	var analytics *schema.SegmentIO
-	var temp *schema.NewFormat
+	var analytics *schema.Trackmate
 
 	// check if we have the updated detached json from segmentio
 	if msg != nil {
 		payload := string(msg.Value)
 		conn.Debug(fmt.Sprintf("Data from message queue %s", payload))
 
-		if strings.Index(payload, "anonymousId") == -1 {
-			// we have the new format
-			errs := json.Unmarshal(msg.Value, &temp)
-			if errs != nil {
-				conn.Error("postToDB unmarshalling new format %v", errs)
-				return errs
-			}
-			id := ksuid.New()
-			analytics = &schema.SegmentIO{}
-			analytics.Id = id.String()
-			analytics.Context.UserAgent = temp.UserAgent
-			analytics.Properties.Type = temp.Type
-			analytics.Properties.Spec = temp.Spec
-			analytics.Properties.Value = temp.Value
-			analytics.Properties.UtmVariable = temp.UtmVariable
-			now := time.Now()
-			// layout := "2006-01-02T15:04:05Z"
-			analytics.ReceivedAt = now
-			analytics.Timestamp = now
-			analytics.SentAt = now
-			analytics.UserID = "message-consumer-couchbase"
-			analytics.Version = 1131
-		} else {
-			// we first unmarshal the payload and add needed values before posting to couchbase
-			errs := json.Unmarshal(msg.Value, &analytics)
-			if errs != nil {
-				conn.Error("postToDB %v\n", errs)
-				return errs
-			}
+		// we have the new format
+		errs := json.Unmarshal(msg.Value, &analytics)
+		if errs != nil {
+			conn.Error("postToDB unmarshalling new format %v", errs)
+			return errs
 		}
-
-		//_, err := c.Upsert(analytics.Affiliate+"-"+strconv.FormatInt(analytics.Timestamp, 10), analytics, &gocb.UpsertOptions{})
-		// TODO:  we have to make our service idempotent
-		_, err := conn.Upsert(analytics.Id, analytics, &gocb.UpsertOptions{})
+		_, err := conn.Upsert(analytics.MessageId, analytics, &gocb.UpsertOptions{})
 		if err != nil {
 			conn.Error(fmt.Sprintf("Could not upsert schema into couchbase %v", err))
 			return err
