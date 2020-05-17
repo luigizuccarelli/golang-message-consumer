@@ -128,12 +128,14 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 		// use regex to extract pagename (for easier aggregation)
 		var validID = regexp.MustCompile(`pagename=[a-z]*`)
 		s := validID.FindAllString(analytics.Page.Referrer, -1)
+		conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
 		if len(s) > 0 {
 			analytics.Page.ReferrerName = strings.Split(s[0], "=")[1]
 		} else {
 			analytics.Page.ReferrerName = "none"
 		}
 		s = validID.FindAllString(analytics.Page.URL, -1)
+		conn.Debug(fmt.Sprintf("Regex url pagename  %s", s))
 		if len(s) > 0 {
 			analytics.Page.URLName = strings.Split(s[0], "=")[1]
 		} else {

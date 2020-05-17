@@ -56,7 +56,7 @@
 				
 				<option value="file0">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go (79.8%)</option>
 				
-				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (87.2%)</option>
+				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (85.0%)</option>
 				
 				<option value="file2">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/validator/validate.go (100.0%)</option>
 				
@@ -514,12 +514,14 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
                 // use regex to extract pagename (for easier aggregation)
                 <span class="cov8" title="1">var validID = regexp.MustCompile(`pagename=[a-z]*`)
                 s := validID.FindAllString(analytics.Page.Referrer, -1)
+                conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
                 if len(s) &gt; 0 </span><span class="cov8" title="1">{
                         analytics.Page.ReferrerName = strings.Split(s[0], "=")[1]
                 }</span> else<span class="cov0" title="0"> {
                         analytics.Page.ReferrerName = "none"
                 }</span>
                 <span class="cov8" title="1">s = validID.FindAllString(analytics.Page.URL, -1)
+                conn.Debug(fmt.Sprintf("Regex url pagename  %s", s))
                 if len(s) &gt; 0 </span><span class="cov8" title="1">{
                         analytics.Page.URLName = strings.Split(s[0], "=")[1]
                 }</span> else<span class="cov0" title="0"> {
@@ -538,7 +540,7 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
                 <span class="cov8" title="1">conn.Info("Analytics schema inserted into couchbase")
                 return nil</span>
 
-        } else<span class="cov8" title="1"> {
+        } else<span class="cov0" title="0"> {
                 conn.Info("Message data is nil")
                 return nil
         }</span>
