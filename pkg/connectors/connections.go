@@ -1,7 +1,6 @@
 package connectors
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -18,6 +17,7 @@ type Clients interface {
 	Debug(string, ...interface{})
 	Trace(string, ...interface{})
 	Upsert(col string, value interface{}, opts *gocb.UpsertOptions) (*gocb.MutationResult, error)
+	//Upsert(col string, value interface{}, expiry uint32) (gocb.Cas, error)
 	KafkaConsumer() sarama.Consumer
 	Close()
 }
@@ -34,15 +34,16 @@ type Connectors struct {
 // NewClientConnectors : function that initialises connections to DB's, caches' queues etc
 // Seperating this functionality here allows us to inject a fake or mock connection object for testing
 func NewClientConnectors(logger *simple.Logger) Clients {
-	opts := gocb.ClusterOptions{
-		Authenticator: gocb.PasswordAuthenticator{
-			Username: os.Getenv("COUCHBASE_USER"),
-			Password: os.Getenv("COUCHBASE_PASSWORD"),
-		},
-	}
 
+	logger.Info(fmt.Sprintf("Couchbase envars: %s %s %s", os.Getenv("COUCHBASE_HOST"), os.Getenv("COUCHBASE_USER"), os.Getenv("COUCHBASE_PASSWORD")))
+
+	opts := gocb.ClusterOptions{
+		Username: os.Getenv("COUCHBASE_USER"),
+		Password: os.Getenv("COUCHBASE_PASSWORD"),
+	}
 	cluster, err := gocb.Connect(os.Getenv("COUCHBASE_HOST"), opts)
 	if err != nil {
+		logger.Error(fmt.Sprintf("Couchbase connection: %v", err))
 		panic(err)
 	}
 
@@ -87,17 +88,7 @@ func (r *Connectors) Trace(msg string, val ...interface{}) {
 // Upsert : wrapper function for couchbase update
 func (r *Connectors) Upsert(col string, value interface{}, opts *gocb.UpsertOptions) (*gocb.MutationResult, error) {
 	collection := r.Bucket.DefaultCollection()
-	upsertResult, err := collection.Upsert(col, value, opts)
-	if err != nil {
-		var queryErr *gocb.QueryError
-		if errors.As(err, &queryErr) {
-			fmt.Println(queryErr.ClientContextID) // the identifier for the query
-			fmt.Println(queryErr.Endpoint)        // the http endpoint used for the query
-			fmt.Println(queryErr.Statement)       // the query statement
-			fmt.Println(queryErr.Errors)          // a list of errors codes + messages for why the query failed.
-		}
-	}
-	return upsertResult, err
+	return collection.Upsert(col, value, opts)
 }
 
 func (c *Connectors) KafkaConsumer() sarama.Consumer {

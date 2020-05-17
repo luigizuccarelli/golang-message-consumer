@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
-	"time"
 
 	"gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/connectors"
 	"gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/schema"
@@ -93,7 +93,7 @@ func consume(conn connectors.Clients, topics []string, master sarama.Consumer) (
 
 						case msg := <-consumer.Messages():
 							consumers <- msg
-							conn.Debug(fmt.Sprintf("Got message on topic %v : %v ", topic, msg))
+							conn.Trace(fmt.Sprintf("Got message on topic %v : %v ", topic, msg))
 
 							err := postToDB(conn, msg)
 							if err != nil {
@@ -124,11 +124,27 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 			conn.Error("postToDB unmarshalling new format %v", errs)
 			return errs
 		}
+
+		// use regex to extract pagename (for easier aggregation)
+		var validID = regexp.MustCompile(`pagename=[a-z]*`)
+		s := validID.FindAllString(analytics.Page.Referrer, -1)
+		if len(s) > 0 {
+			analytics.Page.ReferrerName = strings.Split(s[0], "=")[1]
+		} else {
+			analytics.Page.ReferrerName = "none"
+		}
+		s = validID.FindAllString(analytics.Page.URL, -1)
+		if len(s) > 0 {
+			analytics.Page.URLName = strings.Split(s[0], "=")[1]
+		} else {
+			analytics.Page.URLName = "none"
+		}
+
 		conn.Debug(fmt.Sprintf("Analytics struct  %v", analytics))
-		res, err := conn.Upsert(analytics.MessageId, analytics, &gocb.UpsertOptions{Timeout: 100 * time.Millisecond, Expiry: 60 * time.Second})
-		conn.Debug(fmt.Sprintf("Result from upsert %v", res))
+		res, err := conn.Upsert(analytics.MessageId, analytics, &gocb.UpsertOptions{})
+		conn.Debug(fmt.Sprintf("Result from insert %v", res))
 		if err != nil {
-			conn.Error(fmt.Sprintf("Could not upsert schema into couchbase %v", err))
+			conn.Error(fmt.Sprintf("Could not insert schema into couchbase %v", err))
 			return err
 		}
 

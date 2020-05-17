@@ -6,8 +6,10 @@ type Trackmate struct {
 	Title     string `json:"title"`
 	Type      string `json:"type"`
 	Page      struct {
-		Referrer string `json:"referrer"`
-		URL      string `json:"url"`
+		ReferrerName string `json:"referrerName"`
+		Referrer     string `json:"referrer"`
+		URL          string `json:"url"`
+		URLName      string `json:"urlName"`
 	} `json:"page,omitempty"`
 	UtmVariable struct {
 		CustomerNumber string `json:"customerNumber,omitempty"`

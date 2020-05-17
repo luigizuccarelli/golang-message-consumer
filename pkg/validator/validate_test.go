@@ -41,6 +41,7 @@ func TestEnvars(t *testing.T) {
 		os.Setenv("PROVIDER_URL", "http://test.com")
 		os.Setenv("PROVIDER_TOKEN", "dsfgsdfsdf")
 		os.Setenv("ANALYTICS_URL", "http://test.com")
+		os.Setenv("NAME", "test")
 		err := ValidateEnvars(logger)
 		if err != nil {
 			t.Errorf(fmt.Sprintf("Handler %s returned with error - got (%v) wanted (%v)", "ValidateEnvars", err, nil))

@@ -6,6 +6,12 @@ build:
 	mkdir -p build
 	go build -o build ./...
 
+build-dev:
+	mkdir -p build
+	GOOS=linux go build -ldflags="-s -w" -o build ./...
+	chmod 755 build/microservice
+	chmod 755 build/uid_entrypoint.sh
+
 test:
 	go test -v -coverprofile=tests/results/cover.out ./...
 

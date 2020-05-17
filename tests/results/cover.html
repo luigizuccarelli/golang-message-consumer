@@ -56,7 +56,7 @@
 				
 				<option value="file0">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go (79.8%)</option>
 				
-				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (83.9%)</option>
+				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (87.2%)</option>
 				
 				<option value="file2">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/validator/validate.go (100.0%)</option>
 				
@@ -391,14 +391,13 @@ import (
         "fmt"
         "os"
         "os/signal"
+        "regexp"
         "strings"
-        "time"
 
         "gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/connectors"
         "gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/schema"
         "github.com/Shopify/sarama"
         gocb "github.com/couchbase/gocb/v2"
-        "github.com/segmentio/ksuid"
 )
 
 // Init : public function that connects to the kafka queue and redis cache
@@ -429,7 +428,7 @@ func Init(conn connectors.Clients) <span class="cov8" title="1">{
                         select </span>{
                         case msg := &lt;-consumer:<span class="cov8" title="1">
                                 msgCount++
-                                conn.Debug(fmt.Sprintf("Received messages %v ", msg))
+                                conn.Trace(fmt.Sprintf("Received messages %v ", msg))
                                 if os.Getenv("TESTING") == "true" &amp;&amp; msgCount &gt; 1 </span><span class="cov0" title="0">{
                                         conn.Info("Test flag set - auto interrupt")
                                         doneCh &lt;- struct{}{}
@@ -480,7 +479,7 @@ func consume(conn connectors.Clients, topics []string, master sarama.Consumer) (
 
                                                 case msg := &lt;-consumer.Messages():<span class="cov8" title="1">
                                                         consumers &lt;- msg
-                                                        conn.Debug(fmt.Sprintf("Got message on topic %v : %v ", topic, msg))
+                                                        conn.Trace(fmt.Sprintf("Got message on topic %v : %v ", topic, msg))
 
                                                         err := postToDB(conn, msg)
                                                         if err != nil </span><span class="cov8" title="1">{
@@ -498,50 +497,40 @@ func consume(conn connectors.Clients, topics []string, master sarama.Consumer) (
 // postToDB : private utility function that posts the json payload to couchbase
 func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span class="cov8" title="1">{
 
-        var analytics *schema.SegmentIO
-        var temp *schema.NewFormat
+        var analytics *schema.Trackmate
 
         // check if we have the updated detached json from segmentio
         if msg != nil </span><span class="cov8" title="1">{
                 payload := string(msg.Value)
-                conn.Debug(fmt.Sprintf("Data from message queue %s", payload))
+                conn.Trace(fmt.Sprintf("Data from message queue %s", payload))
 
-                if strings.Index(payload, "anonymousId") == -1 </span><span class="cov8" title="1">{
-                        // we have the new format
-                        errs := json.Unmarshal(msg.Value, &amp;temp)
-                        if errs != nil </span><span class="cov8" title="1">{
-                                conn.Error("postToDB unmarshalling new format %v", errs)
-                                return errs
-                        }</span>
-                        <span class="cov8" title="1">id := ksuid.New()
-                        analytics = &amp;schema.SegmentIO{}
-                        analytics.Id = id.String()
-                        analytics.Context.UserAgent = temp.UserAgent
-                        analytics.Properties.Type = temp.Type
-                        analytics.Properties.Spec = temp.Spec
-                        analytics.Properties.Value = temp.Value
-                        analytics.Properties.UtmVariable = temp.UtmVariable
-                        now := time.Now()
-                        // layout := "2006-01-02T15:04:05Z"
-                        analytics.ReceivedAt = now
-                        analytics.Timestamp = now
-                        analytics.SentAt = now
-                        analytics.UserID = "message-consumer-couchbase"
-                        analytics.Version = 1131</span>
-                } else<span class="cov0" title="0"> {
-                        // we first unmarshal the payload and add needed values before posting to couchbase
-                        errs := json.Unmarshal(msg.Value, &amp;analytics)
-                        if errs != nil </span><span class="cov0" title="0">{
-                                conn.Error("postToDB %v\n", errs)
-                                return errs
-                        }</span>
-                }
+                // we have the new format
+                errs := json.Unmarshal(msg.Value, &amp;analytics)
+                if errs != nil </span><span class="cov8" title="1">{
+                        conn.Error("postToDB unmarshalling new format %v", errs)
+                        return errs
+                }</span>
 
-                //_, err := c.Upsert(analytics.Affiliate+"-"+strconv.FormatInt(analytics.Timestamp, 10), analytics, &amp;gocb.UpsertOptions{})
-                // TODO:  we have to make our service idempotent
-                <span class="cov8" title="1">_, err := conn.Upsert(analytics.Id, analytics, &amp;gocb.UpsertOptions{})
+                // use regex to extract pagename (for easier aggregation)
+                <span class="cov8" title="1">var validID = regexp.MustCompile(`pagename=[a-z]*`)
+                s := validID.FindAllString(analytics.Page.Referrer, -1)
+                if len(s) &gt; 0 </span><span class="cov8" title="1">{
+                        analytics.Page.ReferrerName = strings.Split(s[0], "=")[1]
+                }</span> else<span class="cov0" title="0"> {
+                        analytics.Page.ReferrerName = "none"
+                }</span>
+                <span class="cov8" title="1">s = validID.FindAllString(analytics.Page.URL, -1)
+                if len(s) &gt; 0 </span><span class="cov8" title="1">{
+                        analytics.Page.URLName = strings.Split(s[0], "=")[1]
+                }</span> else<span class="cov0" title="0"> {
+                        analytics.Page.URLName = "none"
+                }</span>
+
+                <span class="cov8" title="1">conn.Debug(fmt.Sprintf("Analytics struct  %v", analytics))
+                res, err := conn.Upsert(analytics.MessageId, analytics, &amp;gocb.UpsertOptions{})
+                conn.Debug(fmt.Sprintf("Result from insert %v", res))
                 if err != nil </span><span class="cov0" title="0">{
-                        conn.Error(fmt.Sprintf("Could not upsert schema into couchbase %v", err))
+                        conn.Error(fmt.Sprintf("Could not insert schema into couchbase %v", err))
                         return err
                 }</span>
 
@@ -549,7 +538,7 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
                 <span class="cov8" title="1">conn.Info("Analytics schema inserted into couchbase")
                 return nil</span>
 
-        } else<span class="cov0" title="0"> {
+        } else<span class="cov8" title="1"> {
                 conn.Info("Message data is nil")
                 return nil
         }</span>
@@ -588,16 +577,10 @@ func checkEnvar(item string, logger *simple.Logger) error <span class="cov8" tit
 func ValidateEnvars(logger *simple.Logger) error <span class="cov8" title="1">{
         items := []string{
                 "LOG_LEVEL,false",
-                "SERVER_PORT,true",
-                "REDIS_HOST,true",
-                "REDIS_PORT,true",
-                "REDIS_PASSWORD,true",
-                "URL,true",
-                "TOKEN,true",
                 "VERSION,true",
+                "NAME,true",
                 "KAFKA_BROKERS,true",
                 "TOPIC,true",
-                "CONNECTOR,true",
         }
         for x := range items </span><span class="cov8" title="1">{
                 if err := checkEnvar(items[x], logger); err != nil </span><span class="cov8" title="1">{

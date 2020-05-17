@@ -88,7 +88,7 @@ func TestAll(t *testing.T) {
 
 	t.Run("Message consumer : should pass", func(t *testing.T) {
 		wait.Wait()
-		conn := NewTestClientConnectors("../../tests/segmentio.json", 200, "normal", logger)
+		conn := NewTestClientConnectors("../../tests/new-format.json", 200, "normal", logger)
 		os.Setenv("REDIS_HOST", "redis.myportfolio.svc.cluster.local")
 		os.Setenv("KAFKA_BROKERS", "my-cluster-kafka-brokers.apache-kafka.svc.cluster.local:9092")
 		os.Setenv("LOG_LEVEL", "trace")
@@ -106,7 +106,7 @@ func TestAll(t *testing.T) {
 
 	t.Run("Message consumer : should fail", func(t *testing.T) {
 		wait.Wait()
-		conn := NewTestClientConnectors("../../tests/segmentio.json", 200, "error", logger)
+		conn := NewTestClientConnectors("../../tests/new-format.json", 200, "error", logger)
 		os.Setenv("REDIS_HOST", "redis.myportfolio.svc.cluster.local")
 		os.Setenv("KAFKA_BROKERS", "my-cluster-kafka-brokers.apache-kafka.svc.cluster.local:9092")
 		os.Setenv("LOG_LEVEL", "trace")

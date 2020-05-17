@@ -1,29 +1,25 @@
-{
-    "spec": "track_event",
-    "type": "scroll_depth",
-    "value": 14,
-    "utm_variable": {
-        "customerNumber": "000104226595",
-        "campaignId": "38a9b4f7-368c-42c4-8207-c15315bc469b",
-        "r": "eml",
-        "experimentId": "0ea54332-a173-4356-91ec-430791b0f634",
-        "vid": "h7StNT",
-        "utm_campaign": "roc",
-        "affiliate": "ftm",
-        "utm_source": "mail",
-        "pagetype": "promo",
-        "pagename": "landingpage",
-        "utm_medium": "email",
-        "utm_content": "pw20200422_nonbuyers",
-        "bsft_clkid": "51703b1f-cb0f-4fd4-b977-b60268ada6bb",
-        "bsft_uid": "6be0bba7-4955-48a9-ac92-e1e78b775b69",
-        "bsft_mid": "e01b6a44-9fd3-44b7-a408-23ce366779a8",
-        "bsft_eid": "0ea54332-a173-4356-91ec-430791b0f634",
-        "bsft_utid": "6be0bba7-4955-48a9-ac92-e1e78b775b69-PROFITWA",
-        "bsft_link_id": "230",
-        "bsft_mime_type": "html",
-        "bsft_ek": "2020-04-22T02:21:22Z",
-        "h": "true"
-    },
-    "userAgent": "Mozilla/5.0 (Linux; Android 9; SAMSUNG SM-J530Y) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/11.1 Chrome/75.0.3770.143 Mobile Safari/537.36"
+{ 
+  "journey_id": "803e684c-1068-41b2-adac-4cedf77ced40",
+  "message_id": "01c2b9e4-a68b-44b7-a676-a65d87004ff8",
+  "title": "",
+  "type": "link",
+  "page": {
+    "referrer": "https://webapp-256e5.web.app/1/landing.html?utm_campaign=Pilot&utm_source=google&utm_content=AdvariableXYZ&affiliate=NMG-01&utm_medium=link&frompage=google&title=google-ad&pagename=google&pagetype=origin&journey_id=803e684c-1068-41b2-adac-4cedf77ced40",
+    "url": "https://webapp-256e5.web.app/3/order.html?utm_campaign=Pilot&utm_content=AdvariableXYZ&affiliate=NMG-01&utm_medium=link&frompage=landingpage&title=promopage&pagename=promo&pagetype=landingpage&journey_id=803e684c-1068-41b2-adac-4cedf77ced40"
+  },
+  "utm_variable": {
+    "affiliate": "NMG-01",
+    "pagename": "promo",
+    "pagetype": "landingpage",
+    "frompage": "landingpage",
+    "promoCode": "",
+    "utm_campaign": "Pilot",
+    "utm_medium": "link",
+    "utm_content": "AdvariableXYZ",
+    "utm_source": ""
+  },
+  "value": "https://webapp-256e5.web.app/11/confirm.html?utm_campaign=Pilot&utm_content=AdvariableXYZ&affiliate=NMG-01&utm_medium=link&frompage=orderpage&title=orderform&pagename=order&pagetype=orderform",
+  "spec": "track_event",
+  "userAgent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:76.0) Gecko/20100101 Firefox/76.0",
+  "timestamp": 1589648794087
 }
