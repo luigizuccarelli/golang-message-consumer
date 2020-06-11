@@ -26,7 +26,7 @@ type Trackmate struct {
 	Value     interface{} `json:"value"`
 	Spec      string      `json:"spec"`
 	UserAgent string      `json:"userAgent"`
-	Timestamp uint64      `json:"timestamp"`
+	Timestamp string      `json:"timestamp"`
 }
 
 type IrisPlusData struct {
