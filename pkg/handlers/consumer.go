@@ -126,20 +126,49 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 		}
 
 		// use regex to extract pagename (for easier aggregation)
-		var validID = regexp.MustCompile(`pagename=[a-z]*`)
-		s := validID.FindAllString(analytics.Page.Referrer, -1)
-		conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
-		if len(s) > 0 {
+		//var validID = regexp.MustCompile(`pagename=[a-z]*`)
+		//s := validID.FindAllString(analytics.Page.Referrer, -1)
+		//conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
+		//if len(s) > 0 {
+		if strings.Contains(analytics.Page.Referrer, "pagename=") {
+			validID := regexp.MustCompile(`pagename=[a-z]*`)
+			s := validID.FindAllString(analytics.Page.Referrer, -1)
+			conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
 			analytics.Page.ReferrerName = strings.Split(s[0], "=")[1]
 		} else {
-			analytics.Page.ReferrerName = "none"
+			// this means we don't have the referrerName - we need to do some regex updates
+			if strings.Contains(analytics.Page.Referrer, "pro.") {
+				analytics.Page.ReferrerName = "promo"
+			} else if strings.Contains(analytics.Page.Referrer, "orders.") {
+				analytics.Page.ReferrerName = "order"
+			} else if strings.Contains(analytics.Page.Referrer, "opium.") {
+				analytics.Page.ReferrerName = "opium"
+			} else {
+				// take the domain name
+				hld := strings.Split(analytics.Page.Referrer, "/")
+				analytics.Page.ReferrerName = hld[2]
+			}
+
 		}
-		s = validID.FindAllString(analytics.Page.URL, -1)
-		conn.Debug(fmt.Sprintf("Regex url pagename  %s", s))
-		if len(s) > 0 {
+
+		if strings.Contains(analytics.Page.URL, "pagename=") {
+			validID := regexp.MustCompile(`pagename=[a-z]*`)
+			s := validID.FindAllString(analytics.Page.URL, -1)
+			conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
 			analytics.Page.URLName = strings.Split(s[0], "=")[1]
 		} else {
-			analytics.Page.URLName = "none"
+			// this means we don't have the referrerName - we need to do some regex updates
+			if strings.Contains(analytics.Page.URL, "pro.") {
+				analytics.Page.URLName = "promo"
+			} else if strings.Contains(analytics.Page.Referrer, "orders.") {
+				analytics.Page.URLName = "order"
+			} else if strings.Contains(analytics.Page.Referrer, "opium.") {
+				analytics.Page.URLName = "opium"
+			} else {
+				// take the domain name
+				hld := strings.Split(analytics.Page.URL, "/")
+				analytics.Page.URLName = hld[2]
+			}
 		}
 
 		conn.Debug(fmt.Sprintf("Analytics struct  %v", analytics))

@@ -56,7 +56,7 @@
 				
 				<option value="file0">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go (79.8%)</option>
 				
-				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (85.0%)</option>
+				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (82.1%)</option>
 				
 				<option value="file2">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/validator/validate.go (100.0%)</option>
 				
@@ -482,7 +482,7 @@ func consume(conn connectors.Clients, topics []string, master sarama.Consumer) (
                                                         conn.Trace(fmt.Sprintf("Got message on topic %v : %v ", topic, msg))
 
                                                         err := postToDB(conn, msg)
-                                                        if err != nil </span><span class="cov8" title="1">{
+                                                        if err != nil </span><span class="cov0" title="0">{
                                                                 conn.Error(fmt.Sprintf("Error : %v ", err))
                                                         }</span>
                                                 }
@@ -506,27 +506,56 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
 
                 // we have the new format
                 errs := json.Unmarshal(msg.Value, &amp;analytics)
-                if errs != nil </span><span class="cov8" title="1">{
+                if errs != nil </span><span class="cov0" title="0">{
                         conn.Error("postToDB unmarshalling new format %v", errs)
                         return errs
                 }</span>
 
                 // use regex to extract pagename (for easier aggregation)
-                <span class="cov8" title="1">var validID = regexp.MustCompile(`pagename=[a-z]*`)
-                s := validID.FindAllString(analytics.Page.Referrer, -1)
-                conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
-                if len(s) &gt; 0 </span><span class="cov8" title="1">{
+                //var validID = regexp.MustCompile(`pagename=[a-z]*`)
+                //s := validID.FindAllString(analytics.Page.Referrer, -1)
+                //conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
+                //if len(s) &gt; 0 {
+                <span class="cov8" title="1">if strings.Contains(analytics.Page.Referrer, "pagename=") </span><span class="cov8" title="1">{
+                        validID := regexp.MustCompile(`pagename=[a-z]*`)
+                        s := validID.FindAllString(analytics.Page.Referrer, -1)
+                        conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
                         analytics.Page.ReferrerName = strings.Split(s[0], "=")[1]
-                }</span> else<span class="cov0" title="0"> {
-                        analytics.Page.ReferrerName = "none"
-                }</span>
-                <span class="cov8" title="1">s = validID.FindAllString(analytics.Page.URL, -1)
-                conn.Debug(fmt.Sprintf("Regex url pagename  %s", s))
-                if len(s) &gt; 0 </span><span class="cov8" title="1">{
+                }</span> else<span class="cov8" title="1"> {
+                        // this means we don't have the referrerName - we need to do some regex updates
+                        if strings.Contains(analytics.Page.Referrer, "pro.") </span><span class="cov0" title="0">{
+                                analytics.Page.ReferrerName = "promo"
+                        }</span> else<span class="cov8" title="1"> if strings.Contains(analytics.Page.Referrer, "orders.") </span><span class="cov0" title="0">{
+                                analytics.Page.ReferrerName = "order"
+                        }</span> else<span class="cov8" title="1"> if strings.Contains(analytics.Page.Referrer, "opium.") </span><span class="cov0" title="0">{
+                                analytics.Page.ReferrerName = "opium"
+                        }</span> else<span class="cov8" title="1"> {
+                                // take the domain name
+                                hld := strings.Split(analytics.Page.Referrer, "/")
+                                analytics.Page.ReferrerName = hld[2]
+                        }</span>
+
+                }
+
+                <span class="cov8" title="1">if strings.Contains(analytics.Page.URL, "pagename=") </span><span class="cov8" title="1">{
+                        validID := regexp.MustCompile(`pagename=[a-z]*`)
+                        s := validID.FindAllString(analytics.Page.URL, -1)
+                        conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
                         analytics.Page.URLName = strings.Split(s[0], "=")[1]
-                }</span> else<span class="cov0" title="0"> {
-                        analytics.Page.URLName = "none"
-                }</span>
+                }</span> else<span class="cov8" title="1"> {
+                        // this means we don't have the referrerName - we need to do some regex updates
+                        if strings.Contains(analytics.Page.URL, "pro.") </span><span class="cov0" title="0">{
+                                analytics.Page.URLName = "promo"
+                        }</span> else<span class="cov8" title="1"> if strings.Contains(analytics.Page.Referrer, "orders.") </span><span class="cov0" title="0">{
+                                analytics.Page.URLName = "order"
+                        }</span> else<span class="cov8" title="1"> if strings.Contains(analytics.Page.Referrer, "opium.") </span><span class="cov0" title="0">{
+                                analytics.Page.URLName = "opium"
+                        }</span> else<span class="cov8" title="1"> {
+                                // take the domain name
+                                hld := strings.Split(analytics.Page.URL, "/")
+                                analytics.Page.URLName = hld[2]
+                        }</span>
+                }
 
                 <span class="cov8" title="1">conn.Debug(fmt.Sprintf("Analytics struct  %v", analytics))
                 res, err := conn.Upsert(analytics.MessageId, analytics, &amp;gocb.UpsertOptions{})
@@ -540,7 +569,7 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
                 <span class="cov8" title="1">conn.Info("Analytics schema inserted into couchbase")
                 return nil</span>
 
-        } else<span class="cov0" title="0"> {
+        } else<span class="cov8" title="1"> {
                 conn.Info("Message data is nil")
                 return nil
         }</span>
