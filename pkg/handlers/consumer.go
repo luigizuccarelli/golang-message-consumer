@@ -146,7 +146,11 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 			} else {
 				// take the domain name
 				hld := strings.Split(analytics.Page.Referrer, "/")
-				analytics.Page.ReferrerName = hld[2]
+				if len(hld) > 2 {
+					analytics.Page.ReferrerName = hld[2]
+				} else {
+					analytics.Page.ReferrerName = "none"
+				}
 			}
 
 		}
@@ -167,7 +171,11 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 			} else {
 				// take the domain name
 				hld := strings.Split(analytics.Page.URL, "/")
-				analytics.Page.URLName = hld[2]
+				if len(hld) > 2 {
+					analytics.Page.URLName = hld[2]
+				} else {
+					analytics.Page.URLName = "none"
+				}
 			}
 		}
 

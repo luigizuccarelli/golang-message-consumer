@@ -56,7 +56,7 @@
 				
 				<option value="file0">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go (79.8%)</option>
 				
-				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (82.1%)</option>
+				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (81.8%)</option>
 				
 				<option value="file2">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/validator/validate.go (100.0%)</option>
 				
@@ -482,7 +482,7 @@ func consume(conn connectors.Clients, topics []string, master sarama.Consumer) (
                                                         conn.Trace(fmt.Sprintf("Got message on topic %v : %v ", topic, msg))
 
                                                         err := postToDB(conn, msg)
-                                                        if err != nil </span><span class="cov0" title="0">{
+                                                        if err != nil </span><span class="cov8" title="1">{
                                                                 conn.Error(fmt.Sprintf("Error : %v ", err))
                                                         }</span>
                                                 }
@@ -506,7 +506,7 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
 
                 // we have the new format
                 errs := json.Unmarshal(msg.Value, &amp;analytics)
-                if errs != nil </span><span class="cov0" title="0">{
+                if errs != nil </span><span class="cov8" title="1">{
                         conn.Error("postToDB unmarshalling new format %v", errs)
                         return errs
                 }</span>
@@ -532,8 +532,12 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
                         }</span> else<span class="cov8" title="1"> {
                                 // take the domain name
                                 hld := strings.Split(analytics.Page.Referrer, "/")
-                                analytics.Page.ReferrerName = hld[2]
-                        }</span>
+                                if len(hld) &gt; 2 </span><span class="cov8" title="1">{
+                                        analytics.Page.ReferrerName = hld[2]
+                                }</span> else<span class="cov0" title="0"> {
+                                        analytics.Page.ReferrerName = "none"
+                                }</span>
+                        }
 
                 }
 
@@ -553,8 +557,12 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
                         }</span> else<span class="cov8" title="1"> {
                                 // take the domain name
                                 hld := strings.Split(analytics.Page.URL, "/")
-                                analytics.Page.URLName = hld[2]
-                        }</span>
+                                if len(hld) &gt; 2 </span><span class="cov8" title="1">{
+                                        analytics.Page.URLName = hld[2]
+                                }</span> else<span class="cov0" title="0"> {
+                                        analytics.Page.URLName = "none"
+                                }</span>
+                        }
                 }
 
                 <span class="cov8" title="1">conn.Debug(fmt.Sprintf("Analytics struct  %v", analytics))
@@ -569,7 +577,7 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
                 <span class="cov8" title="1">conn.Info("Analytics schema inserted into couchbase")
                 return nil</span>
 
-        } else<span class="cov8" title="1"> {
+        } else<span class="cov0" title="0"> {
                 conn.Info("Message data is nil")
                 return nil
         }</span>
