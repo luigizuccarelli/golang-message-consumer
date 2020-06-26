@@ -164,9 +164,9 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 			// this means we don't have the referrerName - we need to do some regex updates
 			if strings.Contains(analytics.Page.URL, "pro.") {
 				analytics.Page.URLName = "promo"
-			} else if strings.Contains(analytics.Page.Referrer, "orders.") {
+			} else if strings.Contains(analytics.Page.URL, "orders.") {
 				analytics.Page.URLName = "order"
-			} else if strings.Contains(analytics.Page.Referrer, "opium.") {
+			} else if strings.Contains(analytics.Page.URL, "opium.") {
 				analytics.Page.URLName = "opium"
 			} else {
 				// take the domain name
