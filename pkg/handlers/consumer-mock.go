@@ -90,10 +90,10 @@ func (c *Consumer) Topics() ([]string, error) {
 	c.l.Lock()
 	defer c.l.Unlock()
 
-	if c.metadata == nil {
-		c.t.Error("Unexpected call to Topics. Initialize the mock's topic metadata with SetTopicMetadata.")
-		return nil, sarama.ErrOutOfBrokers
-	}
+	//if c.metadata == nil {
+	//	c.t.Error("Unexpected call to Topics. Initialize the mock's topic metadata with SetTopicMetadata.")
+	//	return nil, sarama.ErrOutOfBrokers
+	//}
 
 	var result []string
 	for topic := range c.metadata {
@@ -107,13 +107,13 @@ func (c *Consumer) Partitions(topic string) ([]int32, error) {
 	c.l.Lock()
 	defer c.l.Unlock()
 
-	if c.metadata == nil {
-		c.t.Error("Unexpected call to Partitions. Initialize the mock's topic metadata with SetTopicMetadata.")
-		return nil, sarama.ErrOutOfBrokers
-	}
-	if c.metadata[topic] == nil {
-		return nil, sarama.ErrUnknownTopicOrPartition
-	}
+	//if c.metadata == nil {
+	//	c.t.Error("Unexpected call to Partitions. Initialize the mock's topic metadata with SetTopicMetadata.")
+	//	return nil, sarama.ErrOutOfBrokers
+	//}
+	//if c.metadata[topic] == nil {
+	//	return nil, sarama.ErrUnknownTopicOrPartition
+	//}
 
 	return c.metadata[topic], nil
 }

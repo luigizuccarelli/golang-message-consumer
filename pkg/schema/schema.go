@@ -1,34 +1,29 @@
 package schema
 
+// Trackmate SDK schema
 type Trackmate struct {
 	JourneyId string `json:"journey_id"`
 	MessageId string `json:"message_id"`
 	Title     string `json:"title"`
 	Type      string `json:"type"`
 	Page      struct {
-		ReferrerName string `json:"referrerName"`
-		Referrer     string `json:"referrer"`
-		URL          string `json:"url"`
-		URLName      string `json:"urlName"`
+		Referrer string `json:"referrer"`
+		URL      string `json:"url"`
 	} `json:"page,omitempty"`
-	UtmVariable struct {
-		CustomerNumber string `json:"customerNumber,omitempty"`
-		Affiliate      string `json:"affiliate"`
-		Pagename       string `json:"pagename,omitempty"`
-		Pagetype       string `json:"pagetype"`
-		FromPage       string `json:"frompage"`
-		PromoCode      string `json:"promoCode"`
-		UtmCampaign    string `json:"utm_campaign"`
-		UtmMedium      string `json:"utm_medium"`
-		UtmContent     string `json:"utm_content"`
-		UtmSource      string `json:"utm_source"`
-	} `json:"utm_variable"`
-	Value     interface{} `json:"value"`
-	Spec      string      `json:"spec"`
-	UserAgent string      `json:"userAgent"`
-	Timestamp string      `json:"timestamp"`
+	UtmVariable map[string]interface{} `json:"utm_variable"`
+	Value       []KeyValue             `json:"data"`
+	Spec        string                 `json:"spec"`
+	UserAgent   string                 `json:"userAgent"`
+	Timestamp   string                 `json:"timestamp"`
 }
 
+// KeyValue schema (form data)
+type KeyValue struct {
+	Label string      `json:"label"`
+	Value interface{} `json:"value"`
+}
+
+// IrisPlus schema
 type IrisPlusData struct {
 	CREATIVEName                   string `json:"CREATIVE.name"`
 	CREATIVEStatus                 string `json:"CREATIVE.status"`

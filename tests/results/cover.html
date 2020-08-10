@@ -54,9 +54,9 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go (79.8%)</option>
+				<option value="file0">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go (84.0%)</option>
 				
-				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (81.8%)</option>
+				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (91.3%)</option>
 				
 				<option value="file2">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/validator/validate.go (100.0%)</option>
 				
@@ -164,12 +164,12 @@ func (c *Consumer) Topics() ([]string, error) <span class="cov8" title="1">{
         c.l.Lock()
         defer c.l.Unlock()
 
-        if c.metadata == nil </span><span class="cov0" title="0">{
-                c.t.Error("Unexpected call to Topics. Initialize the mock's topic metadata with SetTopicMetadata.")
-                return nil, sarama.ErrOutOfBrokers
-        }</span>
+        //if c.metadata == nil {
+        //        c.t.Error("Unexpected call to Topics. Initialize the mock's topic metadata with SetTopicMetadata.")
+        //        return nil, sarama.ErrOutOfBrokers
+        //}
 
-        <span class="cov8" title="1">var result []string
+        var result []string
         for topic := range c.metadata </span><span class="cov8" title="1">{
                 result = append(result, topic)
         }</span>
@@ -181,16 +181,16 @@ func (c *Consumer) Partitions(topic string) ([]int32, error) <span class="cov8" 
         c.l.Lock()
         defer c.l.Unlock()
 
-        if c.metadata == nil </span><span class="cov0" title="0">{
-                c.t.Error("Unexpected call to Partitions. Initialize the mock's topic metadata with SetTopicMetadata.")
-                return nil, sarama.ErrOutOfBrokers
-        }</span>
-        <span class="cov8" title="1">if c.metadata[topic] == nil </span><span class="cov0" title="0">{
-                return nil, sarama.ErrUnknownTopicOrPartition
-        }</span>
+        //if c.metadata == nil {
+        //        c.t.Error("Unexpected call to Partitions. Initialize the mock's topic metadata with SetTopicMetadata.")
+        //        return nil, sarama.ErrOutOfBrokers
+        //}
+        //if c.metadata[topic] == nil {
+        //        return nil, sarama.ErrUnknownTopicOrPartition
+        //}
 
-        <span class="cov8" title="1">return c.metadata[topic], nil</span>
-}
+        return c.metadata[topic], nil
+}</span>
 
 func (c *Consumer) HighWaterMarks() map[string]map[int32]int64 <span class="cov0" title="0">{
         hwms := make(map[string]map[int32]int64, len(c.partitionConsumers))
@@ -389,9 +389,9 @@ func (pc *PartitionConsumer) ExpectErrorsDrainedOnClose() <span class="cov0" tit
 import (
         "encoding/json"
         "fmt"
+        "net/url"
         "os"
         "os/signal"
-        "regexp"
         "strings"
 
         "gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/connectors"
@@ -429,7 +429,7 @@ func Init(conn connectors.Clients) <span class="cov8" title="1">{
                         case msg := &lt;-consumer:<span class="cov8" title="1">
                                 msgCount++
                                 conn.Trace(fmt.Sprintf("Received messages %v ", msg))
-                                if os.Getenv("TESTING") == "true" &amp;&amp; msgCount &gt; 1 </span><span class="cov0" title="0">{
+                                if os.Getenv("TESTING") == "true" &amp;&amp; msgCount &gt; 1 </span><span class="cov8" title="1">{
                                         conn.Info("Test flag set - auto interrupt")
                                         doneCh &lt;- struct{}{}
                                 }</span>
@@ -499,9 +499,9 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
 
         var analytics *schema.Trackmate
 
-        // check if we have the updated detached json from segmentio
+        // check if we have the updated detached json
         if msg != nil </span><span class="cov8" title="1">{
-                payload := string(msg.Value)
+                payload, _ := url.PathUnescape(string(msg.Value))
                 conn.Trace(fmt.Sprintf("Data from message queue %s", payload))
 
                 // we have the new format
@@ -510,60 +510,6 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
                         conn.Error("postToDB unmarshalling new format %v", errs)
                         return errs
                 }</span>
-
-                // use regex to extract pagename (for easier aggregation)
-                //var validID = regexp.MustCompile(`pagename=[a-z]*`)
-                //s := validID.FindAllString(analytics.Page.Referrer, -1)
-                //conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
-                //if len(s) &gt; 0 {
-                <span class="cov8" title="1">if strings.Contains(analytics.Page.Referrer, "pagename=") </span><span class="cov8" title="1">{
-                        validID := regexp.MustCompile(`pagename=[a-z]*`)
-                        s := validID.FindAllString(analytics.Page.Referrer, -1)
-                        conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
-                        analytics.Page.ReferrerName = strings.Split(s[0], "=")[1]
-                }</span> else<span class="cov8" title="1"> {
-                        // this means we don't have the referrerName - we need to do some regex updates
-                        if strings.Contains(analytics.Page.Referrer, "pro.") </span><span class="cov0" title="0">{
-                                analytics.Page.ReferrerName = "promo"
-                        }</span> else<span class="cov8" title="1"> if strings.Contains(analytics.Page.Referrer, "orders.") </span><span class="cov0" title="0">{
-                                analytics.Page.ReferrerName = "order"
-                        }</span> else<span class="cov8" title="1"> if strings.Contains(analytics.Page.Referrer, "opium.") </span><span class="cov0" title="0">{
-                                analytics.Page.ReferrerName = "opium"
-                        }</span> else<span class="cov8" title="1"> {
-                                // take the domain name
-                                hld := strings.Split(analytics.Page.Referrer, "/")
-                                if len(hld) &gt; 2 </span><span class="cov8" title="1">{
-                                        analytics.Page.ReferrerName = hld[2]
-                                }</span> else<span class="cov0" title="0"> {
-                                        analytics.Page.ReferrerName = "none"
-                                }</span>
-                        }
-
-                }
-
-                <span class="cov8" title="1">if strings.Contains(analytics.Page.URL, "pagename=") </span><span class="cov8" title="1">{
-                        validID := regexp.MustCompile(`pagename=[a-z]*`)
-                        s := validID.FindAllString(analytics.Page.URL, -1)
-                        conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
-                        analytics.Page.URLName = strings.Split(s[0], "=")[1]
-                }</span> else<span class="cov8" title="1"> {
-                        // this means we don't have the referrerName - we need to do some regex updates
-                        if strings.Contains(analytics.Page.URL, "pro.") </span><span class="cov0" title="0">{
-                                analytics.Page.URLName = "promo"
-                        }</span> else<span class="cov8" title="1"> if strings.Contains(analytics.Page.Referrer, "orders.") </span><span class="cov0" title="0">{
-                                analytics.Page.URLName = "order"
-                        }</span> else<span class="cov8" title="1"> if strings.Contains(analytics.Page.Referrer, "opium.") </span><span class="cov0" title="0">{
-                                analytics.Page.URLName = "opium"
-                        }</span> else<span class="cov8" title="1"> {
-                                // take the domain name
-                                hld := strings.Split(analytics.Page.URL, "/")
-                                if len(hld) &gt; 2 </span><span class="cov8" title="1">{
-                                        analytics.Page.URLName = hld[2]
-                                }</span> else<span class="cov0" title="0"> {
-                                        analytics.Page.URLName = "none"
-                                }</span>
-                        }
-                }
 
                 <span class="cov8" title="1">conn.Debug(fmt.Sprintf("Analytics struct  %v", analytics))
                 res, err := conn.Upsert(analytics.MessageId, analytics, &amp;gocb.UpsertOptions{})
@@ -577,7 +523,7 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
                 <span class="cov8" title="1">conn.Info("Analytics schema inserted into couchbase")
                 return nil</span>
 
-        } else<span class="cov0" title="0"> {
+        } else<span class="cov8" title="1"> {
                 conn.Info("Message data is nil")
                 return nil
         }</span>

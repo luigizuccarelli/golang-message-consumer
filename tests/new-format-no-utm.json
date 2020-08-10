@@ -4,7 +4,9 @@
   "title": "",
   "type": "link",
   "page": {
+    "referrerName": "testFrom",
     "referrer": "https://webapp-256e5.web.app/1/landing.html?journey_id=803e684c-1068-41b2-adac-4cedf77ced40&message_id=2323213213213",
+    "urlName": "testTo",
     "url": "https://webapp-256e5.web.app/3/test.html?journey_id=803e684c-1068-41b2-adac-4cedf77ced40&message_id=2321321332"
   },
   "utm_variable": {
@@ -18,7 +20,11 @@
     "utm_content": "",
     "utm_source": ""
   },
-  "value": "https://webapp-256e5.web.app/11/confirm.html?utm_campaign=Pilot&utm_content=AdvariableXYZ&affiliate=NMG-01&utm_medium=link&frompage=orderpage&title=orderform&pagename=order&pagetype=orderform",
+  "data": [
+    {
+      "value": "https://webapp-256e5.web.app/11/confirm.html?utm_campaign=Pilot&utm_content=AdvariableXYZ&affiliate=NMG-01&utm_medium=link&frompage=orderpage&title=orderform&pagename=order&pagetype=orderform"
+    }
+  ],
   "spec": "track_event",
   "userAgent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:76.0) Gecko/20100101 Firefox/76.0",
   "timestamp": "1589648794087"

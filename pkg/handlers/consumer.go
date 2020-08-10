@@ -3,9 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
-	"regexp"
 	"strings"
 
 	"gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/connectors"
@@ -113,9 +113,9 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 
 	var analytics *schema.Trackmate
 
-	// check if we have the updated detached json from segmentio
+	// check if we have the updated detached json
 	if msg != nil {
-		payload := string(msg.Value)
+		payload, _ := url.PathUnescape(string(msg.Value))
 		conn.Trace(fmt.Sprintf("Data from message queue %s", payload))
 
 		// we have the new format
@@ -123,60 +123,6 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error {
 		if errs != nil {
 			conn.Error("postToDB unmarshalling new format %v", errs)
 			return errs
-		}
-
-		// use regex to extract pagename (for easier aggregation)
-		//var validID = regexp.MustCompile(`pagename=[a-z]*`)
-		//s := validID.FindAllString(analytics.Page.Referrer, -1)
-		//conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
-		//if len(s) > 0 {
-		if strings.Contains(analytics.Page.Referrer, "pagename=") {
-			validID := regexp.MustCompile(`pagename=[a-z]*`)
-			s := validID.FindAllString(analytics.Page.Referrer, -1)
-			conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
-			analytics.Page.ReferrerName = strings.Split(s[0], "=")[1]
-		} else {
-			// this means we don't have the referrerName - we need to do some regex updates
-			if strings.Contains(analytics.Page.Referrer, "pro.") {
-				analytics.Page.ReferrerName = "promo"
-			} else if strings.Contains(analytics.Page.Referrer, "orders.") {
-				analytics.Page.ReferrerName = "order"
-			} else if strings.Contains(analytics.Page.Referrer, "opium.") {
-				analytics.Page.ReferrerName = "opium"
-			} else {
-				// take the domain name
-				hld := strings.Split(analytics.Page.Referrer, "/")
-				if len(hld) > 2 {
-					analytics.Page.ReferrerName = hld[2]
-				} else {
-					analytics.Page.ReferrerName = "none"
-				}
-			}
-
-		}
-
-		if strings.Contains(analytics.Page.URL, "pagename=") {
-			validID := regexp.MustCompile(`pagename=[a-z]*`)
-			s := validID.FindAllString(analytics.Page.URL, -1)
-			conn.Debug(fmt.Sprintf("Regex referrer pagename  %s", s))
-			analytics.Page.URLName = strings.Split(s[0], "=")[1]
-		} else {
-			// this means we don't have the referrerName - we need to do some regex updates
-			if strings.Contains(analytics.Page.URL, "pro.") {
-				analytics.Page.URLName = "promo"
-			} else if strings.Contains(analytics.Page.URL, "orders.") {
-				analytics.Page.URLName = "order"
-			} else if strings.Contains(analytics.Page.URL, "opium.") {
-				analytics.Page.URLName = "opium"
-			} else {
-				// take the domain name
-				hld := strings.Split(analytics.Page.URL, "/")
-				if len(hld) > 2 {
-					analytics.Page.URLName = hld[2]
-				} else {
-					analytics.Page.URLName = "none"
-				}
-			}
 		}
 
 		conn.Debug(fmt.Sprintf("Analytics struct  %v", analytics))

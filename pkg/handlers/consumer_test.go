@@ -98,6 +98,7 @@ func TestAll(t *testing.T) {
 		// call and test our consumer.go
 		Init(conn)
 	})
+
 	t.Run("Message consumer : should pass", func(t *testing.T) {
 		conn := NewTestClientConnectors("../../tests/new-format-no-utm.json", 200, "normal", logger)
 		os.Setenv("REDIS_HOST", "redis.myportfolio.svc.cluster.local")
@@ -109,6 +110,22 @@ func TestAll(t *testing.T) {
 		os.Setenv("URL", "http://127.0.0.1:7001/")
 		os.Setenv("TOPIC", "test")
 		os.Setenv("TESTING", "false")
+		os.Setenv("CONNECTOR", "none")
+		// call and test our consumer.go
+		Init(conn)
+	})
+
+	t.Run("Message consumer : should pass", func(t *testing.T) {
+		conn := NewTestClientConnectors("../../tests/new-format.json", 200, "normal", logger)
+		os.Setenv("REDIS_HOST", "redis.myportfolio.svc.cluster.local")
+		os.Setenv("KAFKA_BROKERS", "my-cluster-kafka-brokers.apache-kafka.svc.cluster.local:9092")
+		os.Setenv("LOG_LEVEL", "trace")
+		os.Setenv("SERVER_PORT", "")
+		os.Setenv("REDIS_PORT", "6379")
+		os.Setenv("REDIS_PASSWORD", "pt")
+		os.Setenv("URL", "http://127.0.0.1:7001/")
+		os.Setenv("TOPIC", "test")
+		os.Setenv("TESTING", "true")
 		os.Setenv("CONNECTOR", "none")
 		// call and test our consumer.go
 		Init(conn)
