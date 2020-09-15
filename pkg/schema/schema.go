@@ -4,7 +4,7 @@ package schema
 type Trackmate struct {
 	JourneyId   string `json:"journey_id"`
 	MessageId   string `json:"message_id"`
-	AffiliateId string `json:"affiliate_id"`
+	AffiliateId string `json:"affiliate_id,omitempty"`
 	Title       string `json:"title"`
 	Type        string `json:"type"`
 	Page        struct {

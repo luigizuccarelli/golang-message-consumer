@@ -56,7 +56,7 @@
 				
 				<option value="file0">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go (84.0%)</option>
 				
-				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (91.3%)</option>
+				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (88.4%)</option>
 				
 				<option value="file2">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/validator/validate.go (100.0%)</option>
 				
@@ -429,7 +429,7 @@ func Init(conn connectors.Clients) <span class="cov8" title="1">{
                         case msg := &lt;-consumer:<span class="cov8" title="1">
                                 msgCount++
                                 conn.Trace(fmt.Sprintf("Received messages %v ", msg))
-                                if os.Getenv("TESTING") == "true" &amp;&amp; msgCount &gt; 1 </span><span class="cov8" title="1">{
+                                if os.Getenv("TESTING") == "true" &amp;&amp; msgCount &gt; 1 </span><span class="cov0" title="0">{
                                         conn.Info("Test flag set - auto interrupt")
                                         doneCh &lt;- struct{}{}
                                 }</span>

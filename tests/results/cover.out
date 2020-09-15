@@ -46,8 +46,8 @@ gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handl
 gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go:218.56,220.3 1 0
 gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go:230.12,234.30 3 1
 gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go:238.3,238.20 1 1
-gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go:234.30,236.4 1 1
-gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go:238.20,240.4 1 1
+gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go:234.30,236.4 1 0
+gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go:238.20,240.4 1 0
 gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go:244.12,246.25 2 1
 gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go:246.26,248.4 0 1
 gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go:256.68,258.2 1 1
@@ -67,7 +67,7 @@ gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handl
 gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go:43.27,46.55 3 1
 gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go:50.35,53.25 3 1
 gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go:54.19,56.25 2 0
-gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go:46.55,49.6 2 1
+gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go:46.55,49.6 2 0
 gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go:66.139,71.31 4 1
 gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go:108.2,108.26 1 1
 gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go:71.31,73.52 2 1
