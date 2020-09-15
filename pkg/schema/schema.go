@@ -2,11 +2,12 @@ package schema
 
 // Trackmate SDK schema
 type Trackmate struct {
-	JourneyId string `json:"journey_id"`
-	MessageId string `json:"message_id"`
-	Title     string `json:"title"`
-	Type      string `json:"type"`
-	Page      struct {
+	JourneyId   string `json:"journey_id"`
+	MessageId   string `json:"message_id"`
+	AffiliateId string `json:"affiliate_id"`
+	Title       string `json:"title"`
+	Type        string `json:"type"`
+	Page        struct {
 		Referrer string `json:"referrer"`
 		URL      string `json:"url"`
 	} `json:"page,omitempty"`
