@@ -3,6 +3,7 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>handlers: Go Coverage Report</title>
 		<style>
 			body {
 				background: black;
@@ -56,7 +57,7 @@
 				
 				<option value="file0">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer-mock.go (84.0%)</option>
 				
-				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (88.4%)</option>
+				<option value="file1">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (87.0%)</option>
 				
 				<option value="file2">gitea-cicd.apps.aws2-dev.ocp.14west.io/cicd/trackmate-message-consumer/pkg/validator/validate.go (100.0%)</option>
 				
@@ -429,7 +430,7 @@ func Init(conn connectors.Clients) <span class="cov8" title="1">{
                         case msg := &lt;-consumer:<span class="cov8" title="1">
                                 msgCount++
                                 conn.Trace(fmt.Sprintf("Received messages %v ", msg))
-                                if os.Getenv("TESTING") == "true" &amp;&amp; msgCount &gt; 1 </span><span class="cov0" title="0">{
+                                if os.Getenv("TESTING") == "true" &amp;&amp; msgCount &gt; 1 </span><span class="cov8" title="1">{
                                         conn.Info("Test flag set - auto interrupt")
                                         doneCh &lt;- struct{}{}
                                 }</span>
@@ -482,7 +483,7 @@ func consume(conn connectors.Clients, topics []string, master sarama.Consumer) (
                                                         conn.Trace(fmt.Sprintf("Got message on topic %v : %v ", topic, msg))
 
                                                         err := postToDB(conn, msg)
-                                                        if err != nil </span><span class="cov8" title="1">{
+                                                        if err != nil </span><span class="cov0" title="0">{
                                                                 conn.Error(fmt.Sprintf("Error : %v ", err))
                                                         }</span>
                                                 }
@@ -506,7 +507,7 @@ func postToDB(conn connectors.Clients, msg *sarama.ConsumerMessage) error <span 
 
                 // we have the new format
                 errs := json.Unmarshal(msg.Value, &amp;analytics)
-                if errs != nil </span><span class="cov8" title="1">{
+                if errs != nil </span><span class="cov0" title="0">{
                         conn.Error("postToDB unmarshalling new format %v", errs)
                         return errs
                 }</span>

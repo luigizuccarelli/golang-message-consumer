@@ -16,6 +16,7 @@ type Trackmate struct {
 	Spec        string                 `json:"spec"`
 	UserAgent   string                 `json:"userAgent"`
 	Timestamp   string                 `json:"timestamp"`
+	Platform    string                 `json:"platform"`
 }
 
 // KeyValue schema (form data)
