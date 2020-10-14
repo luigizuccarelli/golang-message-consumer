@@ -15,7 +15,7 @@ spec:
         args: [
           "--dockerfile=/godata/pipelines/trackmate-message-consumer/Dockerfile",
           "--context=/godata/pipelines/trackmate-message-consumer",
-          "--destination=tfld-docker-prd-local.repo.14west.io/trackmate-message-consumer:1.14.2"
+          "--destination=quay.io/14west/trackmate-message-consumer:1.14.2"
         ]
         volumeMounts:
         - mountPath: /godata
@@ -25,7 +25,7 @@ spec:
           subPath: config.json
         env:
         - name: DESITINATION
-        value: tfld-docker-prd-local.repo.14west.io/trackmate-message-consumer:1.14.2
+        value: quay.io/14west/trackmate-message-consumer:1.14.2
       restartPolicy: Never   
       volumes:
       - name: gocdagent-data
