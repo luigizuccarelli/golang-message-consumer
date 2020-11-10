@@ -1,3 +1,5 @@
+// +build real
+
 package main
 
 import (
@@ -28,5 +30,5 @@ func main() {
 	}
 	conn := connectors.NewClientConnectors(logger)
 	handlers.Init(conn)
-	defer conn.Close()
+	//defer conn.Close()
 }

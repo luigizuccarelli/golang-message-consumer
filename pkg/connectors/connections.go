@@ -1,34 +1,27 @@
+// +build real
+
 package connectors
 
 import (
 	"fmt"
 	"os"
-	"strings"
 
-	"github.com/Shopify/sarama"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	gocb "github.com/couchbase/gocb/v2"
 	"github.com/microlib/simple"
 )
-
-// Clients interface - the NewClientConnectors will return this struct
-type Clients interface {
-	Error(string, ...interface{})
-	Info(string, ...interface{})
-	Debug(string, ...interface{})
-	Trace(string, ...interface{})
-	Upsert(col string, value interface{}, opts *gocb.UpsertOptions) (*gocb.MutationResult, error)
-	//Upsert(col string, value interface{}, expiry uint32) (gocb.Cas, error)
-	KafkaConsumer() sarama.Consumer
-	Close()
-}
 
 // The premise here is to use this as a reciever in the relevant functions
 // this allows us then to mock/fake connections and calls
 type Connectors struct {
 	Bucket *gocb.Bucket
 	Logger *simple.Logger
-	Kafka  sarama.Consumer
+	Kafka  *KafkaConsumerWrapper
 	Name   string
+}
+
+type KafkaConsumerWrapper struct {
+	Consumer *kafka.Consumer
 }
 
 // NewClientConnectors : function that initialises connections to DB's, caches' queues etc
@@ -52,21 +45,21 @@ func NewClientConnectors(logger *simple.Logger) Clients {
 	bucket := cluster.Bucket(os.Getenv("COUCHBASE_BUCKET"))
 	logger.Info(fmt.Sprintf("Couchbase connection: %v", bucket))
 
-	// kafka connector
-	cfg := sarama.NewConfig()
-	cfg.ClientID = "go-kafka-consumer"
-	cfg.Consumer.Return.Errors = true
+	c, err := kafka.NewConsumer(&kafka.ConfigMap{
+		"bootstrap.servers": os.Getenv("KAFKA_BROKERS"),
+		"group.id":          "trackmateGroup",
+		"auto.offset.reset": "earliest",
+	})
 
-	// check by way of logging the kafka brokers in an HA setup
-	brokerList := strings.Split(os.Getenv("KAFKA_BROKERS"), ",")
-	logger.Info(fmt.Sprintf("Kafka brokers: %s", strings.Join(brokerList, ", ")))
-
-	// Create new consumer
-	mc, err := sarama.NewConsumer(brokerList, cfg)
 	if err != nil {
 		panic(err)
 	}
-	return &Connectors{Bucket: bucket, Kafka: mc, Logger: logger, Name: "RealConnectors"}
+
+	c.SubscribeTopics([]string{os.Getenv("TOPIC"), "^aRegex.*[Tt]opic"}, nil)
+	logger.Info(fmt.Sprintf("Kafka brokers: %s", os.Getenv("KAFKA_BROKERS")))
+
+	cw := &KafkaConsumerWrapper{Consumer: c}
+	return &Connectors{Bucket: bucket, Kafka: cw, Logger: logger, Name: "RealConnectors"}
 }
 
 func (r *Connectors) Error(msg string, val ...interface{}) {
@@ -91,10 +84,10 @@ func (r *Connectors) Upsert(col string, value interface{}, opts *gocb.UpsertOpti
 	return collection.Upsert(col, value, opts)
 }
 
-func (c *Connectors) KafkaConsumer() sarama.Consumer {
+func (c *Connectors) KafkaConsumer() *KafkaConsumerWrapper {
 	return c.Kafka
 }
 
 func (c *Connectors) Close() {
-	c.Kafka.Close()
+	c.Kafka.Consumer.Close()
 }

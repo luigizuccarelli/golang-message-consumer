@@ -1,6 +1,8 @@
 github.com/Shopify/sarama v1.26.3 h1:wSN3FpDXLe3e2z47OzGii5VAK693oVkyHFwh240jWjg=
 github.com/Shopify/sarama v1.26.3/go.mod h1:NbSGBSSndYaIhRcBtY9V0U7AyH+x71bG668AuWys/yU=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
+github.com/confluentinc/confluent-kafka-go v1.5.2 h1:l+qt+a0Okmq0Bdr1P55IX4fiwFJyg0lZQmfHkAFkv7E=
+github.com/confluentinc/confluent-kafka-go v1.5.2/go.mod h1:u2zNLny2xq+5rWeTQjFHbDzzNuba4P1vo31r9r4uAdg=
 github.com/couchbase/gocb/v2 v2.1.0 h1:Qmar9yVr5nsyNsBXCN2NygMWOLguycaHBFfCzbngSDg=
 github.com/couchbase/gocb/v2 v2.1.0/go.mod h1:zUDEySEuLdz0ir5HqI4JtmkNedBT6oV7JkPYCo/87CQ=
 github.com/couchbase/gocbcore/v9 v9.0.0 h1:e4KEdGOvm31M8x3B8ww2qVPqppude3R5n5tAb2zf2MA=
@@ -23,6 +25,7 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pretty v0.2.0/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
+github.com/microlib/simple v0.0.0-20170927110707-4b906e1855fd h1:V2XE/ln03TQGR3WAvewo1dQPSPpXGScL/kynP9bGd0Q=
 github.com/microlib/simple v0.0.0-20170927110707-4b906e1855fd/go.mod h1:AIAkCaaQxDOkppDihi2iI0xOHak5dJjGtzGS35H8lcQ=
 github.com/pierrec/lz4 v2.4.1+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

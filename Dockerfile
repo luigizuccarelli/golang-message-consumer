@@ -1,17 +1,10 @@
-FROM registry.access.redhat.com/ubi8/ubi-init:latest
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 
 LABEL maintainer="lzuccarelli@tfd.ie"
 
-RUN dnf remove -y subscription-manager
-
-ENV GOPATH /go
-ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
-COPY bin/* uid_entrypoint.sh build/microservice /go/
-
-RUN rpm -iv /go/librdkafka-0.11.5-1.el8.x86_64.rpm && rm -rf /go/lib*
-
-RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 0755 "$GOPATH"
-WORKDIR $GOPATH
+RUN mkdir -p /go/src /go/bin && chmod -R 0755 /go/
+COPY uid_entrypoint.sh build/microservice /go/
+WORKDIR /go
 
 USER 1001
 
