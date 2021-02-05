@@ -23,7 +23,7 @@ clean:
 	go clean ./...
 
 container:
-	podman build -t nexus-registry-nexus.apps.aws2-dev.ocp.14west.io/trackmate-message-consumer:1.14.2 .
+	podman build -t quay.io/14west/trackmate-message-consumer:1.15.6 .
 
 push:
-	podman push nexus-registry-nexus.apps.aws2-dev.ocp.14west.io/trackmate-message-consumer:1.14.2 
+	podman push quay.io/14west/trackmate-message-consumer:1.15.6 
